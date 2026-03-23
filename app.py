@@ -188,8 +188,25 @@ def carregar_alunos():
         dados = ws.get_all_values()
         if len(dados) < 2:
             return pd.DataFrame(columns=["matricula","nome","turma","mencao","ranking","escolha","prof_terca","prof_quarta","tr"])
-        df = pd.DataFrame(dados[1:], columns=["matricula","nome","turma","mencao","ranking","escolha","prof_terca","prof_quarta","tr"])
-        df = df[df["matricula"].str.strip() != ""]
+        # Lê por índice de coluna (A=0, B=1, C=2, D=3, E=4, F=5, G=6, H=7, I=8)
+        # Funciona independente do total de colunas na planilha
+        rows = []
+        for row in dados[1:]:
+            while len(row) < 9:
+                row.append("")
+            rows.append({
+                "matricula":  str(row[0]).strip(),
+                "nome":       str(row[1]).strip(),
+                "turma":      str(row[2]).strip(),
+                "mencao":     str(row[3]).strip(),
+                "ranking":    str(row[4]).strip(),
+                "escolha":    str(row[5]).strip(),
+                "prof_terca": str(row[6]).strip(),
+                "prof_quarta":str(row[7]).strip(),
+                "tr":         str(row[8]).strip(),
+            })
+        df = pd.DataFrame(rows)
+        df = df[df["matricula"] != ""]
         return df
     except Exception as e:
         st.error(f"Erro ao carregar alunos: {e}")
