@@ -1,0 +1,1343 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <title>Gestão de Percursos 2026</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,400&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+
+  <style>
+    /* ── RESET & TOKENS ─────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --ink:    #0d1117;
+      --ink2:   #3d4451;
+      --ink3:   #6e7787;
+      --surface:#ffffff;
+      --bg:     #f4f6f9;
+      --line:   #e4e8ef;
+      --line2:  #cdd2db;
+
+      --blue:   #1a6cf0;
+      --blue-d: #0f4fb3;
+      --blue-l: #e8f0fe;
+      --green:  #1a9e5c;
+      --green-l:#e6f7ef;
+      --amber:  #c97a00;
+      --amber-l:#fff8e6;
+      --red:    #d32b2b;
+      --red-l:  #fdeaea;
+
+      --sidebar-w: 260px;
+      --topbar-h:  56px;
+      --radius:    10px;
+      --radius-lg: 16px;
+      --font: 'DM Sans', system-ui, sans-serif;
+      --mono: 'DM Mono', monospace;
+
+      --shadow-sm: 0 1px 3px rgba(0,0,0,.07), 0 1px 2px rgba(0,0,0,.05);
+      --shadow:    0 4px 12px rgba(0,0,0,.09);
+    }
+
+    html, body { height: 100%; overflow: hidden; }
+    body { font-family: var(--font); background: var(--bg); color: var(--ink); display: flex; }
+
+    /* ── SIDEBAR ────────────────────────────────── */
+    #sidebar {
+      width: var(--sidebar-w);
+      min-width: var(--sidebar-w);
+      height: 100vh;
+      background: #0d1626;
+      color: #c8d3e8;
+      display: flex;
+      flex-direction: column;
+      transition: transform .26s cubic-bezier(.4,0,.2,1), box-shadow .26s;
+      z-index: 300;
+      flex-shrink: 0;
+      overflow: hidden;
+    }
+
+    .sb-logo {
+      padding: 20px 18px 16px;
+      border-bottom: 1px solid rgba(255,255,255,.07);
+    }
+    .sb-logo-label { font-size: 10px; font-weight: 500; letter-spacing: .1em; color: #5a6a8a; text-transform: uppercase; }
+    .sb-logo-title { font-size: 21px; font-weight: 700; color: #fff; line-height: 1.15; margin-top: 4px; letter-spacing: -.02em; }
+
+    .sb-section { padding: 14px 10px 6px; }
+    .sb-section-label {
+      font-size: 9.5px; font-weight: 700; letter-spacing: .1em;
+      color: #3a4a6a; text-transform: uppercase;
+      padding: 0 8px 6px;
+    }
+
+    .sb-btn {
+      display: flex; align-items: center; gap: 10px;
+      width: 100%; background: transparent; border: none;
+      color: #8898b8; padding: 10px 10px; border-radius: 8px;
+      font-size: 13px; font-weight: 500; cursor: pointer;
+      text-align: left; white-space: nowrap; margin-bottom: 2px;
+      font-family: var(--font); transition: all .15s;
+    }
+    .sb-btn:hover { background: rgba(255,255,255,.06); color: #d0daf2; }
+    .sb-btn.active { background: var(--blue); color: #fff; }
+
+    .sb-dot { width: 22px; height: 22px; border-radius: 7px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; flex-shrink: 0; }
+    .dot-all  { background: #2a3550; color: #8898b8; }
+    .dot-tr1  { background: #163d28; color: #4ade80; }
+    .dot-tr2  { background: #142240; color: #60a5fa; }
+    .dot-tr3  { background: #2d1240; color: #c084fc; }
+
+    .sb-footer {
+      margin-top: auto; padding: 14px 16px 20px;
+      border-top: 1px solid rgba(255,255,255,.06);
+      font-size: 11px; color: #3a4a6a;
+      display: flex; align-items: center; gap: 7px;
+    }
+    .sb-online { width: 7px; height: 7px; border-radius: 50%; background: #22c55e; animation: pulse 2.5s infinite; flex-shrink: 0; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.35} }
+
+    /* ── MAIN ───────────────────────────────────── */
+    #main { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-width: 0; }
+
+    /* ── TOPBAR ──────────────────────────────────  */
+    .topbar {
+      height: var(--topbar-h); background: var(--surface);
+      border-bottom: 1px solid var(--line);
+      padding: 0 16px; display: flex; align-items: center;
+      gap: 10px; flex-shrink: 0; box-shadow: var(--shadow-sm);
+    }
+    .topbar-toggle {
+      width: 38px; height: 38px; border-radius: 9px; border: 1px solid var(--line);
+      background: transparent; cursor: pointer; display: flex; align-items: center;
+      justify-content: center; color: var(--ink3); font-size: 18px;
+      transition: background .13s; flex-shrink: 0;
+    }
+    .topbar-toggle:hover { background: var(--bg); }
+    .topbar-title { font-size: 15px; font-weight: 700; letter-spacing: -.02em; }
+
+    .topbar-search {
+      flex: 1; max-width: 340px; margin-left: auto; position: relative;
+    }
+    .topbar-search input {
+      width: 100%; height: 36px; padding: 0 14px 0 38px;
+      border: 1.5px solid var(--line); border-radius: 20px;
+      font-size: 13px; outline: none; background: var(--bg);
+      font-family: var(--font); transition: border-color .17s;
+    }
+    .topbar-search input:focus { border-color: var(--blue); background: var(--surface); }
+    .topbar-search .ico { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--ink3); font-size: 14px; pointer-events: none; }
+
+    .badge-total {
+      background: var(--blue-l); color: var(--blue-d);
+      padding: 4px 12px; border-radius: 20px; font-size: 11.5px;
+      font-weight: 600; white-space: nowrap; flex-shrink: 0;
+    }
+
+    /* ── DASHBOARD SCROLL ───────────────────────── */
+    .dashboard { flex: 1; overflow-y: auto; padding: 16px; }
+
+    /* ── STAT CARDS ─────────────────────────────── */
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 10px; margin-bottom: 14px;
+    }
+    .stat {
+      background: var(--surface); border: 1px solid var(--line);
+      border-radius: var(--radius-lg); padding: 14px 16px;
+      cursor: pointer; transition: box-shadow .15s, border-color .15s;
+      user-select: none;
+    }
+    .stat:hover { box-shadow: var(--shadow); border-color: var(--line2); }
+    .stat.ativo { border-color: var(--blue); box-shadow: 0 0 0 2px var(--blue-l); }
+    .stat-label { font-size: 11.5px; color: var(--ink3); font-weight: 500; margin-bottom: 8px; }
+    .stat-num   { font-size: 34px; font-weight: 700; letter-spacing: -.04em; line-height: 1; }
+    .stat.blue  .stat-num { color: var(--blue); }
+    .stat.green .stat-num { color: var(--green); }
+    .stat.amber .stat-num { color: var(--amber); }
+    .stat.red   .stat-num { color: var(--red); }
+
+    /* ── PAINEL PRINCIPAL ───────────────────────── */
+    .panel {
+      background: var(--surface); border: 1px solid var(--line);
+      border-radius: var(--radius-lg); box-shadow: var(--shadow-sm);
+      overflow: hidden;
+    }
+
+    /* ── MONITOR DE VAGAS ───────────────────────── */
+    .monitor-wrap {
+      padding: 12px 16px 0; border-bottom: 1px solid var(--line);
+    }
+    .monitor-label { font-size: 11px; font-weight: 600; color: var(--ink3); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 8px; }
+    .monitor-scroll {
+      display: flex; gap: 8px; overflow-x: auto; padding-bottom: 12px;
+      -webkit-overflow-scrolling: touch; scrollbar-width: thin;
+    }
+    .vaga-card {
+      min-width: 110px; max-width: 140px; flex-shrink: 0;
+      border: 1.5px solid var(--green-l); border-radius: var(--radius);
+      padding: 8px 10px; cursor: pointer; text-align: center;
+      background: var(--green-l); transition: all .15s; touch-action: manipulation;
+    }
+    .vaga-card:active { transform: scale(.97); }
+    .vaga-card.lotado  { background: var(--red-l); border-color: #f8bcbc; }
+    .vaga-card.sel     { background: var(--blue-l); border-color: var(--blue); box-shadow: 0 0 0 2px var(--blue-l); }
+    .vaga-card h4 { font-size: 11px; font-weight: 700; color: var(--ink2); margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .vaga-card p  { font-size: 10px; color: var(--ink3); height: 14px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+    .vaga-num     { font-size: 22px; font-weight: 700; color: var(--green); line-height: 1.1; }
+    .vaga-card.lotado .vaga-num { color: var(--red); }
+    .vaga-card.sel    .vaga-num { color: var(--blue); }
+    .vaga-sub { font-size: 9px; color: var(--ink3); }
+
+    /* ── PANEL HEADER ───────────────────────────── */
+    .panel-header {
+      display: flex; align-items: center; gap: 10px;
+      padding: 12px 16px; border-bottom: 1px solid var(--line);
+      flex-wrap: wrap;
+    }
+    .panel-title { font-size: 14px; font-weight: 700; }
+    .panel-sub   { font-size: 12px; color: var(--ink3); margin-left: 4px; }
+    .panel-actions { display: flex; gap: 6px; margin-left: auto; flex-wrap: wrap; }
+
+    .btn {
+      height: 34px; padding: 0 13px; border-radius: 8px; border: 1px solid var(--line);
+      background: var(--surface); color: var(--ink2); font-size: 12px;
+      font-weight: 600; cursor: pointer; display: inline-flex; align-items: center;
+      gap: 5px; white-space: nowrap; font-family: var(--font); transition: all .14s;
+      touch-action: manipulation;
+    }
+    .btn:hover { background: var(--bg); border-color: var(--line2); }
+    .btn:active { transform: scale(.97); }
+    .btn.primary { background: var(--blue); border-color: var(--blue); color: #fff; }
+    .btn.primary:hover { background: var(--blue-d); }
+    .btn.success { background: var(--green); border-color: var(--green); color: #fff; }
+    .btn.danger  { background: var(--red);   border-color: var(--red);   color: #fff; }
+
+    /* ── TABELA ─────────────────────────────────── */
+    .table-wrap { overflow: auto; -webkit-overflow-scrolling: touch; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 880px; }
+    th {
+      position: sticky; top: 0; background: var(--bg);
+      color: var(--ink2); font-size: 11px; font-weight: 700;
+      padding: 10px 12px; text-align: left; z-index: 10;
+      border-bottom: 2px solid var(--line); letter-spacing: .04em;
+      text-transform: uppercase; white-space: nowrap;
+    }
+    td { padding: 10px 12px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+    tr:hover td { background: #f7f9fc !important; }
+    tr.ok td { background: #fafff8; }
+    tr.transf td { opacity: .55; }
+    tr.transf td * { text-decoration: line-through; }
+
+    /* ── PILL BADGES ────────────────────────────── */
+    .pill {
+      display: inline-block; padding: 2px 8px; border-radius: 20px;
+      font-size: 11px; font-weight: 600; white-space: nowrap; font-family: var(--mono);
+    }
+    .pill.mat   { background: #e8f4fd; color: #0870c5; }
+    .pill.turma { background: var(--amber-l); color: var(--amber); }
+    .pill.rank  { background: var(--blue-l); color: var(--blue-d); min-width: 28px; text-align: center; }
+    .pill.ok    { background: var(--green-l); color: var(--green); }
+    .pill.pend  { background: var(--amber-l); color: var(--amber); }
+    .pill.transf{ background: var(--red-l); color: var(--red); }
+
+    /* ── NOME CELL ──────────────────────────────── */
+    .nome-cell strong { font-size: 13px; font-weight: 600; display: block; }
+    .nome-cell small  { font-size: 11px; color: var(--ink3); }
+
+    /* ── SELECT CURSO ───────────────────────────── */
+    select.curso-sel {
+      width: 100%; min-width: 220px; padding: 6px 8px;
+      border: 1.5px solid var(--line); border-radius: 7px;
+      font-size: 12px; font-family: var(--font); background: var(--surface);
+      outline: none; cursor: pointer; transition: border-color .15s;
+      -webkit-appearance: auto; appearance: auto;
+    }
+    select.curso-sel:focus { border-color: var(--blue); }
+    .prof-row { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 5px; }
+    .prof-tag { font-size: 11px; color: var(--ink3); background: var(--bg); border-radius: 5px; padding: 2px 7px; }
+    .nome-curso-tag { font-size: 11px; color: var(--blue-d); font-weight: 500; display: block; margin-top: 3px; }
+
+    /* ── ACTION BUTTONS ─────────────────────────── */
+    .actions { display: flex; gap: 4px; flex-wrap: wrap; align-items: center; }
+    .act {
+      height: 30px; padding: 0 8px; border-radius: 7px; border: 1px solid var(--line);
+      background: var(--surface); font-size: 11px; font-weight: 600;
+      cursor: pointer; font-family: var(--font); transition: all .13s;
+      white-space: nowrap; color: var(--ink2); display: inline-flex;
+      align-items: center; gap: 4px; touch-action: manipulation;
+    }
+    .act:active { transform: scale(.96); }
+    .act.save   { background: var(--green); border-color: var(--green); color: #fff; }
+    .act.clear  { background: var(--amber); border-color: var(--amber); color: #fff; }
+    .act.edit   { background: var(--blue);  border-color: var(--blue);  color: #fff; }
+    .act.transf { background: var(--red);   border-color: var(--red);   color: #fff; }
+    .act.undo   { background: #f97316; border-color: #f97316; color: #fff; }
+    .act.del    { background: var(--ink2);  border-color: var(--ink2);  color: #fff; }
+
+    /* Mobile: menu de ações */
+    .mobile-menu-wrap { position: relative; }
+    .mobile-menu-btn {
+      width: 36px; height: 36px; border-radius: 8px; border: 1px solid var(--line);
+      background: var(--surface); cursor: pointer; font-size: 18px;
+      display: flex; align-items: center; justify-content: center;
+      transition: background .13s; touch-action: manipulation;
+    }
+    .mobile-menu-btn:active { background: var(--bg); }
+    .mobile-dropdown {
+      position: absolute; right: 0; top: 40px; background: var(--surface);
+      border: 1px solid var(--line); border-radius: var(--radius);
+      box-shadow: var(--shadow); z-index: 500; min-width: 160px;
+      display: none; overflow: hidden;
+    }
+    .mobile-dropdown.open { display: block; }
+    .mobile-dropdown button {
+      display: block; width: 100%; padding: 11px 14px; text-align: left;
+      background: none; border: none; font-size: 13px; font-family: var(--font);
+      font-weight: 500; cursor: pointer; color: var(--ink);
+      border-bottom: 1px solid var(--line);
+    }
+    .mobile-dropdown button:last-child { border-bottom: none; }
+    .mobile-dropdown button:hover { background: var(--bg); }
+
+    /* ── LOADING / ERROR ────────────────────────── */
+    #loading {
+      text-align: center; padding: 60px 20px;
+      font-size: 14px; color: var(--ink3);
+    }
+    .spinner {
+      width: 32px; height: 32px; border: 3px solid var(--line);
+      border-top-color: var(--blue); border-radius: 50%;
+      animation: spin .7s linear infinite; margin: 0 auto 14px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    #error-msg {
+      background: var(--red-l); color: var(--red); border: 1px solid #f8bcbc;
+      border-radius: var(--radius); padding: 12px 16px; margin: 16px;
+      font-size: 13px; display: none;
+    }
+
+    /* ── UPDATE TOAST ───────────────────────────── */
+    #toast {
+      position: fixed; top: 14px; right: 16px;
+      background: var(--green); color: #fff;
+      padding: 7px 16px; border-radius: 20px; font-size: 12px; font-weight: 600;
+      box-shadow: var(--shadow); opacity: 0; transform: translateY(-10px);
+      transition: all .28s; z-index: 2000; pointer-events: none;
+    }
+    #toast.show { opacity: 1; transform: translateY(0); }
+
+    /* ── MODAIS ─────────────────────────────────── */
+    .modal-bg {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,.45); z-index: 1000;
+      align-items: center; justify-content: center;
+      animation: fadeIn .18s;
+    }
+    .modal-bg.open { display: flex; }
+    @keyframes fadeIn { from{opacity:0} to{opacity:1} }
+    .modal {
+      background: var(--surface); border-radius: var(--radius-lg);
+      padding: 24px; width: 92%; max-width: 480px; max-height: 88vh;
+      overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,.22);
+      animation: slideUp .2s;
+    }
+    @keyframes slideUp { from{transform:translateY(30px);opacity:0} to{transform:translateY(0);opacity:1} }
+    .modal-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; }
+    .modal-head h2 { font-size: 17px; font-weight: 700; }
+    .modal-close { background: none; border: none; font-size: 22px; cursor: pointer; color: var(--ink3); line-height: 1; padding: 2px 5px; border-radius: 5px; }
+    .modal-close:hover { color: var(--ink); }
+
+    .fgroup { margin-bottom: 14px; }
+    .fgroup label { display: block; font-size: 12px; font-weight: 600; margin-bottom: 5px; color: var(--ink2); }
+    .fgroup input, .fgroup select {
+      width: 100%; height: 40px; padding: 0 12px;
+      border: 1.5px solid var(--line); border-radius: 8px;
+      font-size: 13px; font-family: var(--font); outline: none;
+      background: var(--surface); transition: border-color .15s;
+    }
+    .fgroup input:focus, .fgroup select:focus { border-color: var(--blue); }
+    .modal-footer { display: flex; gap: 8px; justify-content: flex-end; margin-top: 18px; }
+
+    /* Dialog genérico */
+    #dialog-bg {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,.45); z-index: 1500;
+      align-items: center; justify-content: center;
+    }
+    #dialog-bg.open { display: flex; }
+    #dialog-box {
+      background: var(--surface); border-radius: var(--radius-lg);
+      padding: 24px; width: 90%; max-width: 420px; max-height: 80vh;
+      overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,.22);
+      text-align: center; animation: slideUp .2s;
+    }
+    #dialog-msg { font-size: 13.5px; line-height: 1.6; margin-bottom: 18px; }
+    #dialog-btns { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
+
+    /* ── MOBILE SIDEBAR OVERLAY ─────────────────── */
+    #sidebar-overlay {
+      display: none; position: fixed; inset: 0; background: rgba(0,0,0,.35);
+      z-index: 200; -webkit-tap-highlight-color: transparent;
+    }
+
+    /* ── RESPONSIVE ─────────────────────────────── */
+    @media (max-width: 900px) {
+      #sidebar {
+        position: fixed; left: 0; top: 0; height: 100%;
+        transform: translateX(-100%);
+      }
+      #sidebar.open {
+        transform: translateX(0);
+        box-shadow: 4px 0 30px rgba(0,0,0,.35);
+      }
+      #sidebar-overlay.show { display: block; }
+      .stats-row { grid-template-columns: repeat(3, 1fr); }
+    }
+    @media (max-width: 640px) {
+      .stats-row { grid-template-columns: repeat(2, 1fr); }
+      table { min-width: 420px; font-size: 12px; }
+      th, td { padding: 8px 9px; }
+      .desktop-only { display: none !important; }
+      .mobile-only  { display: flex !important; }
+      .topbar-title { display: none; }
+    }
+    @media (min-width: 641px) {
+      .mobile-only { display: none !important; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- SIDEBAR OVERLAY (mobile) -->
+<div id="sidebar-overlay" onclick="toggleSidebar()"></div>
+
+<!-- SIDEBAR -->
+<nav id="sidebar">
+  <div class="sb-logo">
+    <div class="sb-logo-label">Sistema Escolar</div>
+    <div class="sb-logo-title">Gestão de Percursos<br>2026</div>
+  </div>
+
+  <div class="sb-section">
+    <div class="sb-section-label">Trilhas</div>
+    <button class="sb-btn active" id="btnTODAS" onclick="selectTrilha(null, this)">
+      <span class="sb-dot dot-all">★</span> Todas as trilhas
+    </button>
+    <button class="sb-btn" id="btnTR1" onclick="selectTrilha('TR1', this)">
+      <span class="sb-dot dot-tr1">1</span> Trilha 1° Ano
+    </button>
+    <button class="sb-btn" id="btnTR2" onclick="selectTrilha('TR2', this)">
+      <span class="sb-dot dot-tr2">2</span> Trilha 2° Ano
+    </button>
+    <button class="sb-btn" id="btnTR3" onclick="selectTrilha('TR3', this)">
+      <span class="sb-dot dot-tr3">3</span> Trilha 3° Ano
+    </button>
+  </div>
+
+  <div class="sb-section">
+    <div class="sb-section-label">Ações</div>
+    <button class="sb-btn" onclick="abrirModal('modal-add')">
+      <span class="sb-dot" style="background:#162d42;color:#60a5fa">+</span> Adicionar aluno
+    </button>
+    <button class="sb-btn" onclick="abrirSorteio()">
+      <span class="sb-dot" style="background:#2d1640;color:#c084fc">🎲</span> Sorteio automático
+    </button>
+    <button class="sb-btn" onclick="abrirImport()">
+      <span class="sb-dot" style="background:#163020;color:#4ade80">↑</span> Importar XML
+    </button>
+    <button class="sb-btn" onclick="abrirTransferidos()">
+      <span class="sb-dot" style="background:#2d1a0a;color:#fb923c">⚠</span> Transferidos
+    </button>
+  </div>
+
+  <div class="sb-section">
+    <div class="sb-section-label">Relatórios</div>
+    <button class="sb-btn" onclick="abrirListaTurma()">
+      <span class="sb-dot" style="background:#1a2030;color:#93c5fd">📋</span> Lista por turma
+    </button>
+    <button class="sb-btn" onclick="abrirListaProfessor()">
+      <span class="sb-dot" style="background:#1a2030;color:#93c5fd">👤</span> Lista por professor
+    </button>
+    <button class="sb-btn" onclick="exportarCSV()">
+      <span class="sb-dot" style="background:#1a2030;color:#6ee7b7">⬇</span> Exportar CSV
+    </button>
+  </div>
+
+  <div class="sb-footer">
+    <div class="sb-online"></div>
+    <span id="last-update">Aguardando...</span>
+  </div>
+</nav>
+
+<!-- MAIN -->
+<div id="main">
+
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <button class="topbar-toggle" onclick="toggleSidebar()">☰</button>
+    <span class="topbar-title">Gestão de Percursos</span>
+    <div class="topbar-search">
+      <span class="ico">🔍</span>
+      <input type="text" id="busca" placeholder="Buscar aluno ou matrícula..." oninput="filtrar()" />
+    </div>
+    <span class="badge-total" id="badge-total">— alunos</span>
+  </div>
+
+  <!-- DASHBOARD -->
+  <div class="dashboard">
+
+    <!-- STAT CARDS -->
+    <div class="stats-row">
+      <div class="stat" onclick="setFiltroRapido('todos')">
+        <div class="stat-label">Total</div>
+        <div class="stat-num" id="st-total">—</div>
+      </div>
+      <div class="stat green" onclick="setFiltroRapido('matriculados')">
+        <div class="stat-label">Matriculados</div>
+        <div class="stat-num" id="st-mat">—</div>
+      </div>
+      <div class="stat amber" onclick="setFiltroRapido('pendentes')">
+        <div class="stat-label">Pendentes</div>
+        <div class="stat-num" id="st-pend">—</div>
+      </div>
+      <div class="stat red" onclick="setFiltroRapido('transferidos')">
+        <div class="stat-label">Transferidos</div>
+        <div class="stat-num" id="st-transf">—</div>
+      </div>
+      <div class="stat blue" onclick="setFiltroRapido('todos')">
+        <div class="stat-label">Vagas livres</div>
+        <div class="stat-num" id="st-vagas">—</div>
+      </div>
+    </div>
+
+    <!-- PAINEL -->
+    <div class="panel">
+
+      <!-- MONITOR DE VAGAS -->
+      <div class="monitor-wrap">
+        <div class="monitor-label">Monitor de vagas — clique para filtrar</div>
+        <div class="monitor-scroll" id="monitor">
+          <div style="color:var(--ink3);font-size:13px;padding:4px 0">Carregando...</div>
+        </div>
+      </div>
+
+      <!-- PANEL HEADER -->
+      <div class="panel-header">
+        <span class="panel-title">Alunos</span>
+        <span class="panel-sub" id="panel-sub"></span>
+        <div class="panel-actions">
+          <button class="btn" onclick="filtrarRapido('pendentes')">⚡ Só pendentes</button>
+          <button class="btn" onclick="filtrarRapido('todos')">✕ Limpar filtro</button>
+          <button class="btn primary" onclick="abrirModal('modal-add')">+ Adicionar</button>
+        </div>
+      </div>
+
+      <!-- LOADING / ERROR -->
+      <div id="loading">
+        <div class="spinner"></div>
+        Carregando dados da planilha...
+      </div>
+      <div id="error-msg"></div>
+
+      <!-- TABELA -->
+      <div class="table-wrap" id="tabela-wrap" style="display:none">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th class="desktop-only">Matrícula</th>
+              <th>Nome</th>
+              <th>Turma</th>
+              <th class="desktop-only">Menção</th>
+              <th>Curso / Horários</th>
+              <th class="desktop-only">Status</th>
+              <th>Ações</th>
+            </tr>
+          </thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
+    </div><!-- /panel -->
+  </div><!-- /dashboard -->
+</div><!-- /main -->
+
+<!-- TOAST -->
+<div id="toast">✓ Dados atualizados</div>
+
+<!-- DIALOG GENÉRICO -->
+<div id="dialog-bg">
+  <div id="dialog-box">
+    <div id="dialog-msg"></div>
+    <div id="dialog-btns"></div>
+  </div>
+</div>
+
+<!-- MODAL: ADICIONAR ALUNO -->
+<div class="modal-bg" id="modal-add">
+  <div class="modal">
+    <div class="modal-head">
+      <h2>Adicionar aluno</h2>
+      <button class="modal-close" onclick="fecharModal('modal-add')">×</button>
+    </div>
+    <div class="fgroup"><label>Matrícula *</label><input id="add-mat" type="text" placeholder="000000" /></div>
+    <div class="fgroup"><label>Nome completo *</label><input id="add-nome" type="text" /></div>
+    <div class="fgroup"><label>Turma *</label><input id="add-turma" type="text" placeholder="1A, 2B..." /></div>
+    <div class="fgroup"><label>Menção</label><input id="add-mencao" type="text" placeholder="0.00" /></div>
+    <div class="fgroup">
+      <label>Trilha *</label>
+      <select id="add-tr">
+        <option value="TR1">TR1 — 1° Ano</option>
+        <option value="TR2">TR2 — 2° Ano</option>
+        <option value="TR3">TR3 — 3° Ano</option>
+      </select>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="fecharModal('modal-add')">Cancelar</button>
+      <button class="btn success" onclick="salvarNovoAluno()">Salvar aluno</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: EDITAR ALUNO -->
+<div class="modal-bg" id="modal-edit">
+  <div class="modal">
+    <div class="modal-head">
+      <h2>Editar aluno</h2>
+      <button class="modal-close" onclick="fecharModal('modal-edit')">×</button>
+    </div>
+    <input type="hidden" id="edit-mat-antiga" />
+    <div class="fgroup"><label>Matrícula</label><input id="edit-mat" type="text" /></div>
+    <div class="fgroup"><label>Nome completo</label><input id="edit-nome" type="text" /></div>
+    <div class="fgroup"><label>Turma</label><input id="edit-turma" type="text" /></div>
+    <div class="fgroup"><label>Menção</label><input id="edit-mencao" type="text" /></div>
+    <div class="fgroup">
+      <label>Trilha</label>
+      <select id="edit-tr">
+        <option value="TR1">TR1 — 1° Ano</option>
+        <option value="TR2">TR2 — 2° Ano</option>
+        <option value="TR3">TR3 — 3° Ano</option>
+      </select>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="fecharModal('modal-edit')">Cancelar</button>
+      <button class="btn primary" onclick="salvarEdicao()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: IMPORTAR XML -->
+<div class="modal-bg" id="modal-import">
+  <div class="modal">
+    <div class="modal-head">
+      <h2>Importar XML</h2>
+      <button class="modal-close" onclick="fecharModal('modal-import')">×</button>
+    </div>
+    <p style="font-size:13px;color:var(--ink3);margin-bottom:16px;">
+      Selecione o arquivo XML exportado do sistema escolar.
+    </p>
+    <div class="fgroup">
+      <input type="file" id="import-file" accept=".xml" />
+    </div>
+    <div id="import-status" style="font-size:13px;color:var(--ink3);margin-top:8px;"></div>
+    <div class="modal-footer">
+      <button class="btn" onclick="fecharModal('modal-import')">Cancelar</button>
+      <button class="btn primary" onclick="processarImportacao()">Importar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: SORTEIO -->
+<div class="modal-bg" id="modal-sorteio">
+  <div class="modal">
+    <div class="modal-head">
+      <h2>Sorteio automático</h2>
+      <button class="modal-close" onclick="fecharModal('modal-sorteio')">×</button>
+    </div>
+    <p style="font-size:13px;color:var(--ink3);margin-bottom:16px;" id="sorteio-desc"></p>
+    <div class="modal-footer">
+      <button class="btn" onclick="fecharModal('modal-sorteio')">Cancelar</button>
+      <button class="btn primary" id="btn-sorteio-confirm" onclick="executarSorteio()">Sortear</button>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+// ─────────────────────────────────────────────────────────────
+//  CONFIGURAÇÃO — substitua pela URL do seu Apps Script
+// ─────────────────────────────────────────────────────────────
+const GAS_URL = "https://script.google.com/macros/s/AKfycbwqkz7htw2NxLbMF-jNBDm05pQAtZlFoQWS9QWVtHML/exec";
+
+// ── API helpers ───────────────────────────────────────────────
+async function apiGet(action, params = {}) {
+  const url = new URL(GAS_URL);
+  url.searchParams.set("action", action);
+  for (const [k, v] of Object.entries(params)) {
+    url.searchParams.set(k, typeof v === "object" ? JSON.stringify(v) : v);
+  }
+  const r = await fetch(url.toString(), { redirect: "follow" });
+  return r.json();
+}
+
+async function apiPost(action, body = {}) {
+  const r = await fetch(GAS_URL, {
+    method: "POST",
+    headers: { "Content-Type": "text/plain" },
+    body: JSON.stringify({ action, ...body }),
+    redirect: "follow",
+  });
+  return r.json();
+}
+
+// ── Estado global ─────────────────────────────────────────────
+let DADOS = { alunos: [], cursos: [] };
+let TRILHA = null;       // null = todas
+let FILTRO = "todos";    // todos | matriculados | pendentes | transferidos
+let CURSO_SEL = null;    // filtro por card de vaga
+let SALVANDO = false;
+let AUTO_REFRESH = null;
+let DROPDOWN_ABERTO = null;
+
+// ── Expõe funções ao HTML (window.*) ─────────────────────────
+const exp = (name, fn) => { window[name] = fn; };
+
+// ── Init ──────────────────────────────────────────────────────
+async function init() {
+  await carregarDados();
+  iniciarAutoRefresh();
+}
+
+async function carregarDados() {
+  try {
+    document.getElementById("loading").style.display = "block";
+    document.getElementById("tabela-wrap").style.display = "none";
+    document.getElementById("error-msg").style.display = "none";
+
+    const dados = await apiGet("getDadosPainel", TRILHA ? { trilha: TRILHA } : {});
+    if (!dados || !dados.alunos) throw new Error("Dados inválidos recebidos.");
+
+    DADOS = dados;
+    document.getElementById("loading").style.display = "none";
+    document.getElementById("tabela-wrap").style.display = "block";
+
+    renderizarTudo();
+    if (!SALVANDO) mostrarToast();
+    document.getElementById("last-update").textContent =
+      "Atualizado " + new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+  } catch (err) {
+    document.getElementById("loading").style.display = "none";
+    const e = document.getElementById("error-msg");
+    e.textContent = "Erro ao carregar: " + err.message;
+    e.style.display = "block";
+  }
+}
+
+function iniciarAutoRefresh() {
+  if (AUTO_REFRESH) clearInterval(AUTO_REFRESH);
+  AUTO_REFRESH = setInterval(() => { if (!SALVANDO) carregarDados(); }, 30000);
+}
+
+// ── Render ────────────────────────────────────────────────────
+function renderizarTudo() {
+  const alunos = alunosDaTrilha();
+  const cursos = cursosDaTrilha();
+
+  // Stats
+  const mat    = alunos.filter(isMatriculado).length;
+  const pend   = alunos.filter(isPendente).length;
+  const transf = alunos.filter(isTransferido).length;
+  const vagas  = cursos.reduce((s, c) => s + Math.max(0, 35 - (c.vagasOcupadas || 0)), 0);
+
+  document.getElementById("st-total").textContent  = alunos.length;
+  document.getElementById("st-mat").textContent    = mat;
+  document.getElementById("st-pend").textContent   = pend;
+  document.getElementById("st-transf").textContent = transf;
+  document.getElementById("st-vagas").textContent  = vagas;
+
+  renderMonitor(cursos);
+  renderTabela();
+}
+
+function renderMonitor(cursos) {
+  const mon = document.getElementById("monitor");
+  if (!cursos.length) { mon.innerHTML = '<span style="color:var(--ink3);font-size:13px">Nenhum curso</span>'; return; }
+  mon.innerHTML = cursos.map(c => {
+    const disp = Math.max(0, 35 - (c.vagasOcupadas || 0));
+    const cls  = CURSO_SEL === c.codigo ? "vaga-card sel" : disp <= 0 ? "vaga-card lotado" : "vaga-card";
+    return `<div class="${cls}" onclick="filtrarCurso('${c.codigo}')" title="${c.nome}\nTerça: ${c.profTerca||'N/D'}\nQuarta: ${c.profQuarta||'N/D'}">
+      <h4>${c.codigo}</h4>
+      <p>${c.nome}</p>
+      <div class="vaga-num">${disp}</div>
+      <div class="vaga-sub">disponíveis</div>
+    </div>`;
+  }).join("");
+}
+
+function renderTabela() {
+  const cursos = cursosDaTrilha();
+  let alunos = alunosDaTrilha();
+
+  if (FILTRO === "matriculados")  alunos = alunos.filter(isMatriculado);
+  if (FILTRO === "pendentes")     alunos = alunos.filter(isPendente);
+  if (FILTRO === "transferidos")  alunos = alunos.filter(isTransferido);
+  if (CURSO_SEL)                  alunos = alunos.filter(a => String(a[5]||"").trim() === CURSO_SEL);
+
+  const q = document.getElementById("busca").value.toLowerCase();
+  if (q) alunos = alunos.filter(a =>
+    String(a[1]||"").toLowerCase().includes(q) ||
+    String(a[0]||"").toLowerCase().includes(q)
+  );
+
+  document.getElementById("badge-total").textContent = `${alunos.length} aluno${alunos.length !== 1 ? "s" : ""}`;
+  document.getElementById("panel-sub").textContent =
+    TRILHA ? `${TRILHA}${CURSO_SEL ? ` › ${CURSO_SEL}` : ""}` : CURSO_SEL || "";
+
+  const tbody = document.getElementById("tbody");
+  const isMobile = window.innerWidth <= 640;
+
+  tbody.innerHTML = alunos.map(a => {
+    const [mat, nome, turma, mencao, rank, escolha, profTerca, profQuarta,, trilha] =
+      a.map(v => String(v === null || v === undefined ? "" : v));
+
+    const transf = turma.includes("TRANSF");
+    const cls    = transf ? "transf" : escolha ? "ok" : "";
+
+    const opcoesSelect = cursos.map(c => {
+      const sel = escolha === c.codigo ? "selected" : "";
+      const lot = (c.vagasOcupadas || 0) >= 35 && escolha !== c.codigo ? " [LOTADO]" : "";
+      return `<option value="${c.codigo}" ${sel}>${c.codigo} — ${c.nome}${lot}</option>`;
+    }).join("");
+
+    const selectHtml = `
+      <select class="curso-sel" id="sel-${mat}" onchange="preencherHorarios('${mat}')">
+        <option value="">— Selecionar curso —</option>
+        ${opcoesSelect}
+      </select>
+      ${escolha ? `<span class="nome-curso-tag" id="nome-${mat}">${cursos.find(c=>c.codigo===escolha)?.nome||""}</span>` : `<span id="nome-${mat}"></span>`}
+      <div class="prof-row">
+        <span class="prof-tag">Terça: <strong id="terca-${mat}">${profTerca||"—"}</strong></span>
+        <span class="prof-tag">Quarta: <strong id="quarta-${mat}">${profQuarta||"—"}</strong></span>
+      </div>`;
+
+    const statusPill = transf
+      ? `<span class="pill transf">Transferido</span>`
+      : escolha ? `<span class="pill ok">Matriculado</span>` : `<span class="pill pend">Pendente</span>`;
+
+    const btnTransf = transf
+      ? `<button class="act undo" onclick="desfazerTransf('${mat}')">↩ Desfazer</button>`
+      : `<button class="act transf" onclick="transferir('${mat}')">Transferir</button>`;
+
+    const acoesMobile = `
+      <div class="mobile-menu-wrap mobile-only">
+        <button class="mobile-menu-btn" onclick="toggleDropdown('dd-${mat}')">⋮</button>
+        <div class="mobile-dropdown" id="dd-${mat}">
+          <button onclick="salvar('${mat}');fecharDropdown()">💾 Salvar</button>
+          <button onclick="limpar('${mat}');fecharDropdown()">🧹 Limpar</button>
+          <button onclick="abrirEditar('${mat}');fecharDropdown()">✏️ Editar</button>
+          ${transf
+            ? `<button onclick="desfazerTransf('${mat}');fecharDropdown()">↩ Desfazer transf.</button>`
+            : `<button onclick="transferir('${mat}');fecharDropdown()">📤 Transferir</button>`
+          }
+          <button onclick="excluir('${mat}');fecharDropdown()" style="color:var(--red)">🗑 Excluir</button>
+        </div>
+      </div>`;
+
+    const acoesDesktop = `
+      <div class="actions desktop-only">
+        <button class="act save"  onclick="salvar('${mat}')">Salvar</button>
+        <button class="act clear" onclick="limpar('${mat}')">Limpar</button>
+        <button class="act edit"  onclick="abrirEditar('${mat}')">Editar</button>
+        ${btnTransf}
+        <button class="act del"   onclick="excluir('${mat}')">Excluir</button>
+      </div>`;
+
+    return `<tr class="${cls}">
+      <td><span class="pill rank">${rank||"—"}</span></td>
+      <td class="desktop-only"><span class="pill mat">${mat}</span></td>
+      <td><div class="nome-cell"><strong>${nome}</strong><small>${trilha||detectarTR(a)}</small></div></td>
+      <td><span class="pill turma">${turma}</span></td>
+      <td class="desktop-only">${mencao ? `<span class="pill" style="background:var(--bg);color:var(--ink2)">${parseFloat(mencao.replace(",",".")).toFixed(2).replace(".",",")}</span>` : "—"}</td>
+      <td>${selectHtml}</td>
+      <td class="desktop-only">${statusPill}</td>
+      <td>${acoesDesktop}${acoesMobile}</td>
+    </tr>`;
+  }).join("");
+}
+
+// ── Helpers de filtragem ──────────────────────────────────────
+function alunosDaTrilha() {
+  if (!TRILHA) return DADOS.alunos;
+  return DADOS.alunos.filter(a => detectarTR(a) === TRILHA);
+}
+function cursosDaTrilha() {
+  if (!TRILHA) return DADOS.cursos;
+  return DADOS.cursos.filter(c => String(c.tr||"").toUpperCase() === TRILHA);
+}
+function detectarTR(a) {
+  const tr = String(a[8]||"").trim().toUpperCase();
+  if (["TR1","TR2","TR3"].includes(tr)) return tr;
+  const turma = String(a[2]||"").toUpperCase();
+  if (/^1[A-Z]/.test(turma) || turma.includes("TR1")) return "TR1";
+  if (/^2[A-Z]/.test(turma) || turma.includes("TR2")) return "TR2";
+  if (/^3[A-Z]/.test(turma) || turma.includes("TR3")) return "TR3";
+  return "";
+}
+function isMatriculado(a) { return !isTransferido(a) && String(a[5]||"").trim() !== ""; }
+function isPendente(a)    { return !isTransferido(a) && String(a[5]||"").trim() === ""; }
+function isTransferido(a) { return String(a[2]||"").toUpperCase().includes("TRANSF"); }
+
+// ── Ações sobre alunos ────────────────────────────────────────
+async function salvar(mat) {
+  const sel = document.getElementById("sel-" + mat);
+  if (!sel || !sel.value) { dialog("⚠️ Selecione um curso antes de salvar."); return; }
+  SALVANDO = true;
+  try {
+    const res = await apiPost("processarMatricula", { matricula: mat, codigoCurso: sel.value, forcar: false });
+    if (res.confirmacao) {
+      dialog(res.msg, "confirm", async ok => {
+        if (!ok) return;
+        const r2 = await apiPost("processarMatricula", { matricula: mat, codigoCurso: sel.value, forcar: true });
+        if (r2.sucesso) await carregarDados(); else dialog("❌ " + r2.erro);
+      });
+    } else if (res.sucesso) {
+      await carregarDados();
+    } else {
+      dialog("❌ " + (res.erro || "Erro desconhecido"));
+    }
+  } catch (err) { dialog("❌ " + err.message); }
+  finally { SALVANDO = false; }
+}
+
+async function limpar(mat) {
+  dialog("Limpar matrícula de curso do aluno " + mat + "?", "confirm", async ok => {
+    if (!ok) return;
+    SALVANDO = true;
+    try {
+      const res = await apiPost("limparMatricula", { matricula: mat });
+      if (res.sucesso) await carregarDados(); else dialog("❌ " + res.erro);
+    } catch(e) { dialog("❌ " + e.message); }
+    finally { SALVANDO = false; }
+  });
+}
+
+async function excluir(mat) {
+  dialog("❗ Excluir permanentemente o aluno " + mat + "?", "confirm", async ok => {
+    if (!ok) return;
+    SALVANDO = true;
+    try {
+      const res = await apiPost("excluirAluno", { matricula: mat });
+      if (res.sucesso) await carregarDados(); else dialog("❌ " + res.erro);
+    } catch(e) { dialog("❌ " + e.message); }
+    finally { SALVANDO = false; }
+  });
+}
+
+async function transferir(mat) {
+  dialog("Marcar aluno " + mat + " como transferido?", "confirm", async ok => {
+    if (!ok) return;
+    SALVANDO = true;
+    try {
+      const res = await apiPost("marcarTransferido", { matricula: mat });
+      if (res.sucesso) await carregarDados(); else dialog("❌ " + res.erro);
+    } catch(e) { dialog("❌ " + e.message); }
+    finally { SALVANDO = false; }
+  });
+}
+
+async function desfazerTransf(mat) {
+  SALVANDO = true;
+  try {
+    const res = await apiPost("desfazerTransferido", { matricula: mat });
+    if (res.sucesso) await carregarDados(); else dialog("❌ " + res.erro);
+  } catch(e) { dialog("❌ " + e.message); }
+  finally { SALVANDO = false; }
+}
+
+function preencherHorarios(mat) {
+  const sel = document.getElementById("sel-" + mat);
+  const cod = sel?.value;
+  const curso = DADOS.cursos.find(c => c.codigo === cod);
+  document.getElementById("terca-" + mat).textContent  = curso?.profTerca  || "—";
+  document.getElementById("quarta-" + mat).textContent = curso?.profQuarta || "—";
+  const nomeEl = document.getElementById("nome-" + mat);
+  if (nomeEl) nomeEl.textContent = cod && curso ? curso.nome : "";
+}
+
+// ── Adicionar aluno ───────────────────────────────────────────
+async function salvarNovoAluno() {
+  const dadosAluno = {
+    matricula: document.getElementById("add-mat").value.trim(),
+    nome:      document.getElementById("add-nome").value.trim(),
+    turma:     document.getElementById("add-turma").value.trim(),
+    mencao:    document.getElementById("add-mencao").value.trim(),
+    ranking:   "",
+    tr:        document.getElementById("add-tr").value,
+  };
+  if (!dadosAluno.matricula || !dadosAluno.nome || !dadosAluno.turma) {
+    dialog("❌ Preencha matrícula, nome e turma."); return;
+  }
+  SALVANDO = true;
+  try {
+    const res = await apiPost("adicionarAluno", { dadosAluno });
+    if (res.sucesso) {
+      fecharModal("modal-add");
+      document.getElementById("add-mat").value = document.getElementById("add-nome").value =
+      document.getElementById("add-turma").value = document.getElementById("add-mencao").value = "";
+      dialog("✅ " + res.mensagem, "info", () => carregarDados());
+    } else { dialog("❌ " + res.erro); }
+  } catch(e) { dialog("❌ " + e.message); }
+  finally { SALVANDO = false; }
+}
+
+// ── Editar aluno ──────────────────────────────────────────────
+function abrirEditar(mat) {
+  const aluno = DADOS.alunos.find(a => String(a[0]).trim() === String(mat).trim());
+  if (!aluno) { dialog("Aluno não encontrado."); return; }
+  document.getElementById("edit-mat-antiga").value = aluno[0];
+  document.getElementById("edit-mat").value         = aluno[0];
+  document.getElementById("edit-nome").value        = aluno[1];
+  document.getElementById("edit-turma").value       = aluno[2];
+  document.getElementById("edit-mencao").value      = aluno[3];
+  document.getElementById("edit-tr").value          = detectarTR(aluno) || "TR1";
+  abrirModal("modal-edit");
+}
+
+async function salvarEdicao() {
+  const dadosEdicao = {
+    matriculaAntiga: document.getElementById("edit-mat-antiga").value,
+    matricula:       document.getElementById("edit-mat").value.trim(),
+    nome:            document.getElementById("edit-nome").value.trim(),
+    turma:           document.getElementById("edit-turma").value.trim(),
+    mencao:          document.getElementById("edit-mencao").value.trim(),
+    tr:              document.getElementById("edit-tr").value,
+  };
+  SALVANDO = true;
+  try {
+    const res = await apiPost("editarAluno", { dadosEdicao });
+    if (res.sucesso) {
+      fecharModal("modal-edit");
+      await carregarDados();
+    } else { dialog("❌ " + res.erro); }
+  } catch(e) { dialog("❌ " + e.message); }
+  finally { SALVANDO = false; }
+}
+
+// ── Importar XML ──────────────────────────────────────────────
+async function processarImportacao() {
+  const file = document.getElementById("import-file").files[0];
+  if (!file) { dialog("❌ Selecione um arquivo XML."); return; }
+  if (!file.name.endsWith(".xml")) { dialog("❌ O arquivo deve ser .xml"); return; }
+
+  const status = document.getElementById("import-status");
+  status.textContent = "⏳ Lendo arquivo...";
+
+  const reader = new FileReader();
+  reader.onload = async e => {
+    status.textContent = "⏳ Enviando para o servidor...";
+    try {
+      const res = await apiPost("processarImportacaoXML", { xmlText: e.target.result, nome: file.name });
+      fecharModal("modal-import");
+      if (res.erro) { dialog("❌ " + res.erro); return; }
+      const msg = `✅ Importação concluída!<br><br>
+        📦 Total lido: <strong>${res.totalAlunos2026||0}</strong><br>
+        🆕 Novos inseridos: <strong>${res.novos||0}</strong><br>
+        📤 Possíveis transferidos: <strong>${res.transferidos||0}</strong>`;
+      if ((res.transferidos||0) > 0) {
+        dialog(msg + "<br><br>Deseja abrir o painel de transferidos?", "confirm", ok => {
+          if (ok) abrirTransferidos(); else carregarDados();
+        });
+      } else {
+        dialog(msg, "info", () => carregarDados());
+      }
+    } catch(err) { status.textContent = "❌ " + err.message; }
+  };
+  reader.readAsText(file, "UTF-8");
+}
+
+// ── Transferidos pendentes ────────────────────────────────────
+async function abrirTransferidos() {
+  try {
+    const res = await apiGet("getResumoPendencias");
+    const lista = res?.transferidos || [];
+    if (!lista.length) { dialog("✅ Nenhum transferido pendente.", "info", () => carregarDados()); return; }
+    const checks = lista.map(a =>
+      `<label style="display:block;margin:6px 0;font-size:13px;cursor:pointer">
+        <input type="checkbox" class="chk-tr" value="${a.matricula}" checked style="margin-right:6px">
+        ${a.nome} — ${a.turma} — ${a.matricula}
+      </label>`
+    ).join("");
+    dialog(`<strong>Possíveis transferidos:</strong><br><br>
+      <div style="max-height:40vh;overflow:auto;text-align:left">${checks}</div>`, "transferidos");
+  } catch(e) { dialog("❌ " + e.message); }
+}
+
+async function confirmarTransfSelecionados() {
+  const mats = Array.from(document.querySelectorAll(".chk-tr:checked")).map(x => x.value);
+  if (!mats.length) { dialog("⚠️ Nenhum selecionado."); return; }
+  const res = await apiPost("confirmarTransferidos", { matriculas: mats });
+  dialog(`✅ ${res.marcados} confirmado(s). Restantes: ${res.restantes}.`, "info", () => carregarDados());
+}
+
+async function confirmarTodosTransf() {
+  const res = await apiPost("confirmarTodosTransferidos");
+  dialog(`✅ ${res.marcados} transferido(s) confirmado(s).`, "info", () => carregarDados());
+}
+
+// ── Sorteio ───────────────────────────────────────────────────
+function abrirSorteio() {
+  const sem = alunosDaTrilha().filter(isPendente).length;
+  document.getElementById("sorteio-desc").textContent =
+    `Serão sorteados cursos para ${sem} aluno(s) ainda sem matrícula em cursos, ` +
+    `priorizando turmas com menos alunos. Continuar?`;
+  abrirModal("modal-sorteio");
+}
+
+async function executarSorteio() {
+  const btn = document.getElementById("btn-sorteio-confirm");
+  btn.disabled = true; btn.textContent = "⏳ Sorteando...";
+  fecharModal("modal-sorteio");
+
+  const alunosSem = alunosDaTrilha().filter(isPendente);
+  const cursos = cursosDaTrilha().filter(c => (c.vagasOcupadas||0) < 35);
+
+  if (!alunosSem.length || !cursos.length) {
+    dialog("⚠️ Não há alunos pendentes ou cursos disponíveis."); btn.disabled=false; btn.textContent="Sortear"; return;
+  }
+
+  // Cópia local de vagas para controle durante o sorteio
+  const vagasLocal = Object.fromEntries(cursos.map(c => [c.codigo, c.vagasOcupadas||0]));
+
+  function sortearComPeso(lista) {
+    let pool = [];
+    lista.forEach(c => {
+      const n = Math.max(1, Math.ceil((35 - vagasLocal[c.codigo]) / 7));
+      for (let i = 0; i < n; i++) pool.push(c);
+    });
+    return pool[Math.floor(Math.random() * pool.length)];
+  }
+
+  let sorteados = 0;
+  for (let i = 0; i < alunosSem.length; i++) {
+    const aluno = alunosSem[i];
+    const mat = String(aluno[0]);
+    const disponiveis = cursos.filter(c => vagasLocal[c.codigo] < 35);
+    if (!disponiveis.length) break;
+
+    const curso = sortearComPeso(disponiveis);
+    try {
+      await new Promise(res => setTimeout(res, 250 * i)); // anti-throttle
+      const r = await apiPost("processarMatricula", { matricula: mat, codigoCurso: curso.codigo, forcar: false });
+      if (r.sucesso) { vagasLocal[curso.codigo]++; sorteados++; }
+    } catch(e) { /* continua */ }
+  }
+
+  btn.disabled = false; btn.textContent = "Sortear";
+  dialog(`✅ ${sorteados} aluno(s) sorteado(s) com sucesso!`, "info", () => carregarDados());
+}
+
+// ── Exportar CSV ──────────────────────────────────────────────
+async function exportarCSV() {
+  dialog("⏳ Gerando CSV(s) no Drive...", "info");
+  try {
+    const res = await apiGet("exportarAlunos2026CSV", { separador: ";" });
+    if (res.erro) { dialog("❌ " + res.erro); return; }
+    const links = res.arquivos.map(a => `<a href="${a.url}" target="_blank">${a.nome}</a> (${a.quantidade} alunos)`).join("<br>");
+    dialog(`✅ Exportado!<br><br>${links}<br><br><a href="${res.pastaUrl}" target="_blank"><strong>Abrir pasta</strong></a>`, "info");
+  } catch(e) { dialog("❌ " + e.message); }
+}
+
+// ── Lista turma / professor ───────────────────────────────────
+async function abrirListaTurma() {
+  const turmas = [...new Set(DADOS.alunos.map(a => String(a[2]||"").trim()).filter(t => t && !t.includes("TRANSF") && t !== "0"))].sort();
+  if (!turmas.length) { dialog("Nenhuma turma encontrada."); return; }
+  const checks = turmas.map(t => `<label style="display:block;margin:5px 0;font-size:13px;cursor:pointer"><input type="checkbox" class="chk-turma" value="${t}" style="margin-right:6px">${t}</label>`).join("");
+  dialog(`<strong>Selecione as turmas:</strong><br><br><div style="max-height:40vh;overflow:auto;text-align:left">${checks}</div>`, "turma");
+}
+
+async function gerarListaTurma() {
+  const selecionadas = Array.from(document.querySelectorAll(".chk-turma:checked")).map(x => x.value);
+  if (!selecionadas.length) { dialog("⚠️ Selecione ao menos uma turma."); return; }
+  dialog("⏳ Gerando lista...", "info");
+  try {
+    const res = await apiGet("gerarDadosListaTurma", { turmas: selecionadas });
+    if (res.erro) { dialog("❌ " + res.erro); return; }
+    gerarPDFClienteTurma(res.dados);
+  } catch(e) { dialog("❌ " + e.message); }
+}
+
+function gerarPDFClienteTurma(dados) {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+  dados.forEach((turmaObj, idx) => {
+    if (idx > 0) doc.addPage();
+    doc.setFontSize(14).setFont(undefined,"bold").text(`LISTA DE FREQUÊNCIA — TURMA ${turmaObj.turma}`, 14, 16);
+    doc.autoTable({
+      startY: 22, margin: { left: 14, right: 14 },
+      head: [["#","Nome","Trilha","Terça","Quarta"]],
+      body: turmaObj.alunos.map((a,i) => [i+1, a.nome, a.trilha, a.terca, a.quarta]),
+      styles: { fontSize: 9 },
+      headStyles: { fillColor: [26,108,240] },
+    });
+  });
+  doc.save("lista_turmas.pdf");
+}
+
+async function abrirListaProfessor() {
+  try {
+    const lista = await apiGet("obterProfessoresDaBase");
+    if (!lista.length) { dialog("Nenhum professor encontrado na aba BASE."); return; }
+    const checks = lista.map(p => `<label style="display:block;margin:5px 0;font-size:13px;cursor:pointer"><input type="checkbox" class="chk-prof" value="${p}" style="margin-right:6px">${p}</label>`).join("");
+    dialog(`<strong>Selecione os professores:</strong><br><br><div style="max-height:40vh;overflow:auto;text-align:left">${checks}</div>`, "professor");
+  } catch(e) { dialog("❌ " + e.message); }
+}
+
+async function gerarListaProfessor() {
+  const selecionados = Array.from(document.querySelectorAll(".chk-prof:checked")).map(x => x.value);
+  if (!selecionados.length) { dialog("⚠️ Selecione ao menos um professor."); return; }
+  dialog("⏳ Gerando lista...", "info");
+  try {
+    const res = await apiGet("gerarDadosListaProfessor", { professores: selecionados });
+    if (res.erro) { dialog("❌ " + res.erro); return; }
+    gerarPDFClienteProfessor(res.dados);
+  } catch(e) { dialog("❌ " + e.message); }
+}
+
+function gerarPDFClienteProfessor(dados) {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+  dados.forEach((obj, idx) => {
+    if (idx > 0) doc.addPage();
+    doc.setFontSize(13).setFont(undefined,"bold").text(`PROFESSOR: ${obj.professor}`, 14, 14);
+    doc.setFontSize(9).setFont(undefined,"normal").text(`Trilha: ${obj.info.codigoTrilha} — ${obj.info.nomeTrilha||""} | Horário: ${obj.info.horario||""}`, 14, 21);
+    doc.autoTable({
+      startY: 26, margin: { left: 14, right: 14 },
+      head: [["#","Nome","Turma"]],
+      body: obj.alunos.map((a,i) => [i+1, a.nome, a.turma]),
+      styles: { fontSize: 9 },
+      headStyles: { fillColor: [26,108,240] },
+    });
+  });
+  doc.save("lista_professores.pdf");
+}
+
+// ── UI: Filtros e navegação ───────────────────────────────────
+exp("selectTrilha", (t, btn) => {
+  TRILHA = t; FILTRO = "todos"; CURSO_SEL = null;
+  document.querySelectorAll(".sb-btn").forEach(b => b.classList.remove("active"));
+  btn.classList.add("active");
+  carregarDados();
+});
+
+exp("setFiltroRapido", (f) => { FILTRO = f; renderTabela(); });
+exp("filtrarRapido",   (f) => { FILTRO = f; renderTabela(); });
+exp("filtrarCurso",    (cod) => { CURSO_SEL = CURSO_SEL === cod ? null : cod; renderizarTudo(); });
+exp("filtrar",         ()   => renderTabela());
+
+exp("toggleSidebar", () => {
+  document.getElementById("sidebar").classList.toggle("open");
+  document.getElementById("sidebar-overlay").classList.toggle("show");
+});
+
+// ── UI: Modais ────────────────────────────────────────────────
+exp("abrirModal",   (id) => { document.getElementById(id).classList.add("open"); });
+exp("fecharModal",  (id) => { document.getElementById(id).classList.remove("open"); });
+exp("abrirImport",  ()  => abrirModal("modal-import"));
+exp("abrirSorteio", ()  => abrirSorteio());
+
+// ── UI: Dropdowns mobile ──────────────────────────────────────
+exp("toggleDropdown", (id) => {
+  const dd = document.getElementById(id);
+  if (!dd) return;
+  const wasOpen = dd.classList.contains("open");
+  document.querySelectorAll(".mobile-dropdown.open").forEach(d => d.classList.remove("open"));
+  if (!wasOpen) dd.classList.add("open");
+  DROPDOWN_ABERTO = wasOpen ? null : id;
+});
+exp("fecharDropdown", () => {
+  document.querySelectorAll(".mobile-dropdown.open").forEach(d => d.classList.remove("open"));
+  DROPDOWN_ABERTO = null;
+});
+document.addEventListener("click", e => {
+  if (!e.target.closest(".mobile-menu-wrap")) fecharDropdown();
+});
+
+// ── Dialog genérico ───────────────────────────────────────────
+function dialog(msg, tipo = "info", callback = null) {
+  document.getElementById("dialog-msg").innerHTML = msg;
+  const btns = document.getElementById("dialog-btns");
+  btns.innerHTML = "";
+
+  if (tipo === "confirm") {
+    const ok  = mkBtn("Confirmar", "btn success", () => { fecharDialog(); callback && callback(true); });
+    const can = mkBtn("Cancelar",  "btn",         () => { fecharDialog(); callback && callback(false); });
+    btns.append(can, ok);
+  } else if (tipo === "transferidos") {
+    const conf = mkBtn("Confirmar selecionados", "btn primary",
+      () => { fecharDialog(); confirmarTransfSelecionados(); });
+    const todos = mkBtn("Confirmar todos", "btn success",
+      () => { fecharDialog(); confirmarTodosTransf(); });
+    const can  = mkBtn("Fechar", "btn", fecharDialog);
+    btns.append(can, conf, todos);
+  } else if (tipo === "turma") {
+    const gerar = mkBtn("Gerar PDF", "btn primary",
+      () => { fecharDialog(); gerarListaTurma(); });
+    const can = mkBtn("Fechar", "btn", fecharDialog);
+    btns.append(can, gerar);
+  } else if (tipo === "professor") {
+    const gerar = mkBtn("Gerar PDF", "btn primary",
+      () => { fecharDialog(); gerarListaProfessor(); });
+    const can = mkBtn("Fechar", "btn", fecharDialog);
+    btns.append(can, gerar);
+  } else {
+    const ok = mkBtn("OK", "btn primary", () => { fecharDialog(); callback && callback(); });
+    btns.append(ok);
+  }
+  document.getElementById("dialog-bg").classList.add("open");
+}
+
+function mkBtn(label, cls, fn) {
+  const b = document.createElement("button");
+  b.className = cls; b.textContent = label;
+  b.onclick = fn; return b;
+}
+function fecharDialog() {
+  document.getElementById("dialog-bg").classList.remove("open");
+}
+
+// ── Toast ─────────────────────────────────────────────────────
+function mostrarToast() {
+  const t = document.getElementById("toast");
+  t.classList.add("show");
+  setTimeout(() => t.classList.remove("show"), 2200);
+}
+
+// ── Expõe funções que o HTML inline chama ─────────────────────
+exp("salvar",           salvar);
+exp("limpar",           limpar);
+exp("excluir",          excluir);
+exp("transferir",       transferir);
+exp("desfazerTransf",   desfazerTransf);
+exp("preencherHorarios",preencherHorarios);
+exp("abrirEditar",      abrirEditar);
+exp("salvarNovoAluno",  salvarNovoAluno);
+exp("salvarEdicao",     salvarEdicao);
+exp("processarImportacao", processarImportacao);
+exp("executarSorteio",  executarSorteio);
+exp("abrirTransferidos",abrirTransferidos);
+exp("abrirListaTurma",  abrirListaTurma);
+exp("abrirListaProfessor", abrirListaProfessor);
+exp("exportarCSV",      exportarCSV);
+
+// ── Start ─────────────────────────────────────────────────────
+init();
+</script>
+</body>
+</html>
