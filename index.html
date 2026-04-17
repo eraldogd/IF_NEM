@@ -1,1343 +1,2566 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html>
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <meta name="mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <title>Gestão de Percursos 2026</title>
-
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,400&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <base target="_top">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
 
   <style>
-    /* ── RESET & TOKENS ─────────────────────────── */
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
 
-    :root {
-      --ink:    #0d1117;
-      --ink2:   #3d4451;
-      --ink3:   #6e7787;
-      --surface:#ffffff;
-      --bg:     #f4f6f9;
-      --line:   #e4e8ef;
-      --line2:  #cdd2db;
-
-      --blue:   #1a6cf0;
-      --blue-d: #0f4fb3;
-      --blue-l: #e8f0fe;
-      --green:  #1a9e5c;
-      --green-l:#e6f7ef;
-      --amber:  #c97a00;
-      --amber-l:#fff8e6;
-      --red:    #d32b2b;
-      --red-l:  #fdeaea;
-
-      --sidebar-w: 260px;
-      --topbar-h:  56px;
-      --radius:    10px;
-      --radius-lg: 16px;
-      --font: 'DM Sans', system-ui, sans-serif;
-      --mono: 'DM Mono', monospace;
-
-      --shadow-sm: 0 1px 3px rgba(0,0,0,.07), 0 1px 2px rgba(0,0,0,.05);
-      --shadow:    0 4px 12px rgba(0,0,0,.09);
+    body {
+      font-family: 'Inter', sans-serif;
+      background: #f0f2f5;
+      display: flex;
+      height: 100vh;
+      overflow: hidden;
     }
 
-    html, body { height: 100%; overflow: hidden; }
-    body { font-family: var(--font); background: var(--bg); color: var(--ink); display: flex; }
-
-    /* ── SIDEBAR ────────────────────────────────── */
+    /* ═══════ SIDEBAR ═══════ */
     #sidebar {
-      width: var(--sidebar-w);
-      min-width: var(--sidebar-w);
-      height: 100vh;
-      background: #0d1626;
-      color: #c8d3e8;
+      width: 250px;
+      min-width: 250px;
+      background: #1a1f2e;
+      color: #e8eaf0;
       display: flex;
       flex-direction: column;
-      transition: transform .26s cubic-bezier(.4,0,.2,1), box-shadow .26s;
-      z-index: 300;
-      flex-shrink: 0;
+      transition: width 0.28s ease, min-width 0.28s ease;
       overflow: hidden;
+      z-index: 200;
+      box-shadow: 2px 0 10px rgba(0,0,0,0.2);
+      flex-shrink: 0;
+    }
+    #sidebar.collapsed { width: 0; min-width: 0; }
+
+    .sidebar-header {
+      padding: 16px 14px 12px;
+      border-bottom: 1px solid #2d3348;
+      flex-shrink: 0;
+    }
+    .sidebar-logo {
+      font-size: 15px; font-weight: 700; color: #fff;
+      white-space: nowrap; display: flex; align-items: center; gap: 7px;
+    }
+    .sidebar-subtitle { font-size: 11px; color: #5a6280; margin-top: 3px; white-space: nowrap; }
+
+    .sidebar-section { padding: 12px 10px 4px; flex-shrink: 0; }
+    .sidebar-section-title {
+      font-size: 9px; font-weight: 700; color: #4a5270;
+      text-transform: uppercase; letter-spacing: .09em;
+      margin-bottom: 6px; padding-left: 4px; white-space: nowrap;
     }
 
-    .sb-logo {
-      padding: 20px 18px 16px;
-      border-bottom: 1px solid rgba(255,255,255,.07);
-    }
-    .sb-logo-label { font-size: 10px; font-weight: 500; letter-spacing: .1em; color: #5a6a8a; text-transform: uppercase; }
-    .sb-logo-title { font-size: 21px; font-weight: 700; color: #fff; line-height: 1.15; margin-top: 4px; letter-spacing: -.02em; }
-
-    .sb-section { padding: 14px 10px 6px; }
-    .sb-section-label {
-      font-size: 9.5px; font-weight: 700; letter-spacing: .1em;
-      color: #3a4a6a; text-transform: uppercase;
-      padding: 0 8px 6px;
-    }
-
-    .sb-btn {
-      display: flex; align-items: center; gap: 10px;
+    .trilha-btn {
+      display: flex; align-items: center; gap: 9px;
       width: 100%; background: transparent; border: none;
-      color: #8898b8; padding: 10px 10px; border-radius: 8px;
-      font-size: 13px; font-weight: 500; cursor: pointer;
-      text-align: left; white-space: nowrap; margin-bottom: 2px;
-      font-family: var(--font); transition: all .15s;
+      color: #8892b0; padding: 8px 10px; border-radius: 7px;
+      font-size: 12.5px; cursor: pointer; transition: all .16s;
+      text-align: left; white-space: nowrap; margin-bottom: 1px;
+      font-family: inherit;
     }
-    .sb-btn:hover { background: rgba(255,255,255,.06); color: #d0daf2; }
-    .sb-btn.active { background: var(--blue); color: #fff; }
+    .trilha-btn:hover { background: #252b3d; color: #cdd5f0; }
+    .trilha-btn.active { background: #1a73e8; color: #fff; font-weight: 600; }
+    .trilha-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    .dot-all { background: #5a6280; }
+    .dot-tr1 { background: #34d399; }
+    .dot-tr2 { background: #60a5fa; }
+    .dot-tr3 { background: #f472b6; }
 
-    .sb-dot { width: 22px; height: 22px; border-radius: 7px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; flex-shrink: 0; }
-    .dot-all  { background: #2a3550; color: #8898b8; }
-    .dot-tr1  { background: #163d28; color: #4ade80; }
-    .dot-tr2  { background: #142240; color: #60a5fa; }
-    .dot-tr3  { background: #2d1240; color: #c084fc; }
-
-    .sb-footer {
-      margin-top: auto; padding: 14px 16px 20px;
-      border-top: 1px solid rgba(255,255,255,.06);
-      font-size: 11px; color: #3a4a6a;
-      display: flex; align-items: center; gap: 7px;
+    .sidebar-btn {
+      display: flex; align-items: center; gap: 9px;
+      width: 100%; background: transparent; border: none;
+      color: #8892b0; padding: 8px 10px; border-radius: 7px;
+      font-size: 12.5px; cursor: pointer; transition: all .16s;
+      text-align: left; white-space: nowrap; margin-bottom: 1px;
+      font-family: inherit;
     }
-    .sb-online { width: 7px; height: 7px; border-radius: 50%; background: #22c55e; animation: pulse 2.5s infinite; flex-shrink: 0; }
-    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.35} }
+    .sidebar-btn:hover { background: #252b3d; color: #cdd5f0; }
+    .sidebar-btn .icon { font-size: 14px; width: 18px; text-align: center; flex-shrink: 0; }
+    .sb-green { color: #6ee7a0; } .sb-green:hover { background: #1a2e22; color: #4ade80; }
+    .sb-blue  { color: #7ab4f5; } .sb-blue:hover  { background: #172440; color: #60a5fa; }
+    .sb-orange{ color: #fbbf6e; } .sb-orange:hover{ background: #2e2010; color: #fbbf24; }
+    .sb-purple{ color: #c4a8f5; } .sb-purple:hover{ background: #221840; color: #a78bfa; }
 
-    /* ── MAIN ───────────────────────────────────── */
+    #btnSorteio { display: flex; }
+
+    .sidebar-footer {
+      margin-top: auto; padding: 10px 12px;
+      border-top: 1px solid #2d3348; flex-shrink: 0;
+    }
+    .status-ind { display: flex; align-items: center; gap: 7px; font-size: 10px; color: #4a5270; white-space: nowrap; }
+    .status-dot { width: 6px; height: 6px; border-radius: 50%; background: #34a853; animation: pulse 2s infinite; flex-shrink: 0; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+
+    /* ═══════ MAIN ═══════ */
     #main { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-width: 0; }
 
-    /* ── TOPBAR ──────────────────────────────────  */
+    /* TOPBAR */
     .topbar {
-      height: var(--topbar-h); background: var(--surface);
-      border-bottom: 1px solid var(--line);
-      padding: 0 16px; display: flex; align-items: center;
-      gap: 10px; flex-shrink: 0; box-shadow: var(--shadow-sm);
+      background: #fff; border-bottom: 1px solid #e2e6ea;
+      padding: 0 14px; height: 48px;
+      display: flex; align-items: center; gap: 10px;
+      flex-shrink: 0; box-shadow: 0 1px 3px rgba(0,0,0,.06);
     }
     .topbar-toggle {
-      width: 38px; height: 38px; border-radius: 9px; border: 1px solid var(--line);
-      background: transparent; cursor: pointer; display: flex; align-items: center;
-      justify-content: center; color: var(--ink3); font-size: 18px;
-      transition: background .13s; flex-shrink: 0;
+      background: none; border: none; cursor: pointer;
+      padding: 5px 7px; border-radius: 6px; font-size: 17px;
+      color: #5f6368; transition: background .14s; flex-shrink: 0;
     }
-    .topbar-toggle:hover { background: var(--bg); }
-    .topbar-title { font-size: 15px; font-weight: 700; letter-spacing: -.02em; }
+    .topbar-toggle:hover { background: #f1f3f4; }
+    .topbar-title { font-size: 14px; font-weight: 700; color: #1a1f2e; white-space: nowrap; }
 
-    .topbar-search {
-      flex: 1; max-width: 340px; margin-left: auto; position: relative;
-    }
+    .topbar-search { flex: 1; max-width: 360px; margin-left: auto; position: relative; }
     .topbar-search input {
-      width: 100%; height: 36px; padding: 0 14px 0 38px;
-      border: 1.5px solid var(--line); border-radius: 20px;
-      font-size: 13px; outline: none; background: var(--bg);
-      font-family: var(--font); transition: border-color .17s;
+      width: 100%; padding: 6px 12px 6px 34px;
+      border: 1.5px solid #e0e4ea; border-radius: 18px;
+      font-size: 12px; outline: none; background: #f8f9fa;
+      transition: border-color .18s; font-family: inherit;
     }
-    .topbar-search input:focus { border-color: var(--blue); background: var(--surface); }
-    .topbar-search .ico { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--ink3); font-size: 14px; pointer-events: none; }
-
-    .badge-total {
-      background: var(--blue-l); color: var(--blue-d);
-      padding: 4px 12px; border-radius: 20px; font-size: 11.5px;
-      font-weight: 600; white-space: nowrap; flex-shrink: 0;
+    .topbar-search input:focus { border-color: #1a73e8; background: #fff; }
+    .search-icon {
+      position: absolute; left: 11px; top: 50%; transform: translateY(-50%);
+      font-size: 12px; color: #9aa0ae; pointer-events: none;
     }
 
-    /* ── DASHBOARD SCROLL ───────────────────────── */
-    .dashboard { flex: 1; overflow-y: auto; padding: 16px; }
-
-    /* ── STAT CARDS ─────────────────────────────── */
-    .stats-row {
-      display: grid;
-      grid-template-columns: repeat(5, 1fr);
-      gap: 10px; margin-bottom: 14px;
-    }
-    .stat {
-      background: var(--surface); border: 1px solid var(--line);
-      border-radius: var(--radius-lg); padding: 14px 16px;
-      cursor: pointer; transition: box-shadow .15s, border-color .15s;
-      user-select: none;
-    }
-    .stat:hover { box-shadow: var(--shadow); border-color: var(--line2); }
-    .stat.ativo { border-color: var(--blue); box-shadow: 0 0 0 2px var(--blue-l); }
-    .stat-label { font-size: 11.5px; color: var(--ink3); font-weight: 500; margin-bottom: 8px; }
-    .stat-num   { font-size: 34px; font-weight: 700; letter-spacing: -.04em; line-height: 1; }
-    .stat.blue  .stat-num { color: var(--blue); }
-    .stat.green .stat-num { color: var(--green); }
-    .stat.amber .stat-num { color: var(--amber); }
-    .stat.red   .stat-num { color: var(--red); }
-
-    /* ── PAINEL PRINCIPAL ───────────────────────── */
-    .panel {
-      background: var(--surface); border: 1px solid var(--line);
-      border-radius: var(--radius-lg); box-shadow: var(--shadow-sm);
-      overflow: hidden;
+    .total-badge {
+      background: #e8f0fe; color: #1a73e8;
+      padding: 4px 11px; border-radius: 14px;
+      font-size: 11px; font-weight: 600; white-space: nowrap; flex-shrink: 0;
     }
 
-    /* ── MONITOR DE VAGAS ───────────────────────── */
+    /* MONITOR DE VAGAS — faixa compacta */
     .monitor-wrap {
-      padding: 12px 16px 0; border-bottom: 1px solid var(--line);
+      background: #fff; border-bottom: 1px solid #e2e6ea;
+      padding: 5px 14px; flex-shrink: 0;
+      min-height: 0;
     }
-    .monitor-label { font-size: 11px; font-weight: 600; color: var(--ink3); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 8px; }
-    .monitor-scroll {
-      display: flex; gap: 8px; overflow-x: auto; padding-bottom: 12px;
-      -webkit-overflow-scrolling: touch; scrollbar-width: thin;
+    #monitor {
+      display: flex; gap: 5px;
+      overflow-x: auto; flex-wrap: nowrap;
+      justify-content: center;
+      padding: 2px 0 4px;
+      scrollbar-width: thin;
     }
-    .vaga-card {
-      min-width: 110px; max-width: 140px; flex-shrink: 0;
-      border: 1.5px solid var(--green-l); border-radius: var(--radius);
-      padding: 8px 10px; cursor: pointer; text-align: center;
-      background: var(--green-l); transition: all .15s; touch-action: manipulation;
-    }
-    .vaga-card:active { transform: scale(.97); }
-    .vaga-card.lotado  { background: var(--red-l); border-color: #f8bcbc; }
-    .vaga-card.sel     { background: var(--blue-l); border-color: var(--blue); box-shadow: 0 0 0 2px var(--blue-l); }
-    .vaga-card h4 { font-size: 11px; font-weight: 700; color: var(--ink2); margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .vaga-card p  { font-size: 10px; color: var(--ink3); height: 14px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
-    .vaga-num     { font-size: 22px; font-weight: 700; color: var(--green); line-height: 1.1; }
-    .vaga-card.lotado .vaga-num { color: var(--red); }
-    .vaga-card.sel    .vaga-num { color: var(--blue); }
-    .vaga-sub { font-size: 9px; color: var(--ink3); }
+    #monitor:empty { min-height: 0; padding: 0; }
 
-    /* ── PANEL HEADER ───────────────────────────── */
-    .panel-header {
-      display: flex; align-items: center; gap: 10px;
-      padding: 12px 16px; border-bottom: 1px solid var(--line);
-      flex-wrap: wrap;
+    .card {
+      background: linear-gradient(135deg,#e8f5e9,#c8e6c9);
+      border: 2px solid #a5d6a7; border-radius: 7px;
+      padding: 7px 12px; text-align: center; cursor: pointer;
+      transition: all .18s; min-width: 90px; max-width: 130px; flex-shrink: 0;
     }
-    .panel-title { font-size: 14px; font-weight: 700; }
-    .panel-sub   { font-size: 12px; color: var(--ink3); margin-left: 4px; }
-    .panel-actions { display: flex; gap: 6px; margin-left: auto; flex-wrap: wrap; }
+    .card:hover { transform: translateY(-2px); box-shadow: 0 3px 8px rgba(0,0,0,.12); }
+    .card.lotado  { background: linear-gradient(135deg,#fce4ec,#f8bbd0); border-color: #f48fb1; }
+    .card.selected{ background: linear-gradient(135deg,#e3f2fd,#bbdefb); border: 2.5px solid #1a73e8; box-shadow: 0 3px 10px rgba(26,115,232,.22); }
+    .card h4 { font-size: 8px; color: #333; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 1px; }
+    .card p  { font-size: 7px; color: #666; height: 16px; overflow: hidden; line-height: 1.2; margin-bottom: 2px; }
+    .card .vagas { font-size: 14px; font-weight: 700; color: #2e7d32; }
+    .card.lotado .vagas { color: #c62828; }
+    .card.selected .vagas { color: #1a73e8; }
 
-    .btn {
-      height: 34px; padding: 0 13px; border-radius: 8px; border: 1px solid var(--line);
-      background: var(--surface); color: var(--ink2); font-size: 12px;
-      font-weight: 600; cursor: pointer; display: inline-flex; align-items: center;
-      gap: 5px; white-space: nowrap; font-family: var(--font); transition: all .14s;
-      touch-action: manipulation;
+    /* UPDATE BADGE */
+    .update-badge {
+      position: fixed; top: 10px; right: 14px;
+      background: #34a853; color: white; padding: 4px 11px;
+      border-radius: 14px; font-size: 11px; font-weight: 600;
+      box-shadow: 0 2px 8px rgba(0,0,0,.18);
+      opacity: 0; transform: translateY(-8px); transition: all .3s; z-index: 1000;
     }
-    .btn:hover { background: var(--bg); border-color: var(--line2); }
-    .btn:active { transform: scale(.97); }
-    .btn.primary { background: var(--blue); border-color: var(--blue); color: #fff; }
-    .btn.primary:hover { background: var(--blue-d); }
-    .btn.success { background: var(--green); border-color: var(--green); color: #fff; }
-    .btn.danger  { background: var(--red);   border-color: var(--red);   color: #fff; }
+    .update-badge.show { opacity: 1; transform: translateY(0); }
 
-    /* ── TABELA ─────────────────────────────────── */
-    .table-wrap { overflow: auto; -webkit-overflow-scrolling: touch; }
-    table { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 880px; }
+    /* TABELA */
+    .table-section { flex: 1; overflow: hidden; display: flex; flex-direction: column; }
+    .table-container { flex: 1; overflow-y: auto; background: #fff; }
+    table { width: 100%; border-collapse: collapse; font-size: 12px; }
     th {
-      position: sticky; top: 0; background: var(--bg);
-      color: var(--ink2); font-size: 11px; font-weight: 700;
-      padding: 10px 12px; text-align: left; z-index: 10;
-      border-bottom: 2px solid var(--line); letter-spacing: .04em;
-      text-transform: uppercase; white-space: nowrap;
+      position: sticky; top: 0; background: #1a73e8; color: white;
+      padding: 9px 7px; text-align: left; z-index: 10;
+      font-weight: 600; font-size: 11px; white-space: nowrap;
     }
-    td { padding: 10px 12px; border-bottom: 1px solid var(--line); vertical-align: middle; }
-    tr:hover td { background: #f7f9fc !important; }
-    tr.ok td { background: #fafff8; }
-    tr.transf td { opacity: .55; }
-    tr.transf td * { text-decoration: line-through; }
+    td { padding: 8px 8px; border-bottom: 1px solid #f0f2f5; vertical-align: middle; }
 
-    /* ── PILL BADGES ────────────────────────────── */
-    .pill {
-      display: inline-block; padding: 2px 8px; border-radius: 20px;
-      font-size: 11px; font-weight: 600; white-space: nowrap; font-family: var(--mono);
+    /* === LINHAS ALTERNADAS (EXATAMENTE O QUE VOCÊ PEDIU) === */
+    tr {
+      background-color: #ffffff;
     }
-    .pill.mat   { background: #e8f4fd; color: #0870c5; }
-    .pill.turma { background: var(--amber-l); color: var(--amber); }
-    .pill.rank  { background: var(--blue-l); color: var(--blue-d); min-width: 28px; text-align: center; }
-    .pill.ok    { background: var(--green-l); color: var(--green); }
-    .pill.pend  { background: var(--amber-l); color: var(--amber); }
-    .pill.transf{ background: var(--red-l); color: var(--red); }
-
-    /* ── NOME CELL ──────────────────────────────── */
-    .nome-cell strong { font-size: 13px; font-weight: 600; display: block; }
-    .nome-cell small  { font-size: 11px; color: var(--ink3); }
-
-    /* ── SELECT CURSO ───────────────────────────── */
-    select.curso-sel {
-      width: 100%; min-width: 220px; padding: 6px 8px;
-      border: 1.5px solid var(--line); border-radius: 7px;
-      font-size: 12px; font-family: var(--font); background: var(--surface);
-      outline: none; cursor: pointer; transition: border-color .15s;
-      -webkit-appearance: auto; appearance: auto;
-    }
-    select.curso-sel:focus { border-color: var(--blue); }
-    .prof-row { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 5px; }
-    .prof-tag { font-size: 11px; color: var(--ink3); background: var(--bg); border-radius: 5px; padding: 2px 7px; }
-    .nome-curso-tag { font-size: 11px; color: var(--blue-d); font-weight: 500; display: block; margin-top: 3px; }
-
-    /* ── ACTION BUTTONS ─────────────────────────── */
-    .actions { display: flex; gap: 4px; flex-wrap: wrap; align-items: center; }
-    .act {
-      height: 30px; padding: 0 8px; border-radius: 7px; border: 1px solid var(--line);
-      background: var(--surface); font-size: 11px; font-weight: 600;
-      cursor: pointer; font-family: var(--font); transition: all .13s;
-      white-space: nowrap; color: var(--ink2); display: inline-flex;
-      align-items: center; gap: 4px; touch-action: manipulation;
-    }
-    .act:active { transform: scale(.96); }
-    .act.save   { background: var(--green); border-color: var(--green); color: #fff; }
-    .act.clear  { background: var(--amber); border-color: var(--amber); color: #fff; }
-    .act.edit   { background: var(--blue);  border-color: var(--blue);  color: #fff; }
-    .act.transf { background: var(--red);   border-color: var(--red);   color: #fff; }
-    .act.undo   { background: #f97316; border-color: #f97316; color: #fff; }
-    .act.del    { background: var(--ink2);  border-color: var(--ink2);  color: #fff; }
-
-    /* Mobile: menu de ações */
-    .mobile-menu-wrap { position: relative; }
-    .mobile-menu-btn {
-      width: 36px; height: 36px; border-radius: 8px; border: 1px solid var(--line);
-      background: var(--surface); cursor: pointer; font-size: 18px;
-      display: flex; align-items: center; justify-content: center;
-      transition: background .13s; touch-action: manipulation;
-    }
-    .mobile-menu-btn:active { background: var(--bg); }
-    .mobile-dropdown {
-      position: absolute; right: 0; top: 40px; background: var(--surface);
-      border: 1px solid var(--line); border-radius: var(--radius);
-      box-shadow: var(--shadow); z-index: 500; min-width: 160px;
-      display: none; overflow: hidden;
-    }
-    .mobile-dropdown.open { display: block; }
-    .mobile-dropdown button {
-      display: block; width: 100%; padding: 11px 14px; text-align: left;
-      background: none; border: none; font-size: 13px; font-family: var(--font);
-      font-weight: 500; cursor: pointer; color: var(--ink);
-      border-bottom: 1px solid var(--line);
-    }
-    .mobile-dropdown button:last-child { border-bottom: none; }
-    .mobile-dropdown button:hover { background: var(--bg); }
-
-    /* ── LOADING / ERROR ────────────────────────── */
-    #loading {
-      text-align: center; padding: 60px 20px;
-      font-size: 14px; color: var(--ink3);
-    }
-    .spinner {
-      width: 32px; height: 32px; border: 3px solid var(--line);
-      border-top-color: var(--blue); border-radius: 50%;
-      animation: spin .7s linear infinite; margin: 0 auto 14px;
-    }
-    @keyframes spin { to { transform: rotate(360deg); } }
-    #error-msg {
-      background: var(--red-l); color: var(--red); border: 1px solid #f8bcbc;
-      border-radius: var(--radius); padding: 12px 16px; margin: 16px;
-      font-size: 13px; display: none;
+    tr:nth-child(even) {
+      background-color: #f8f9fa;           /* branco + cinza bem clarinho (sem escolha) */
     }
 
-    /* ── UPDATE TOAST ───────────────────────────── */
-    #toast {
-      position: fixed; top: 14px; right: 16px;
-      background: var(--green); color: #fff;
-      padding: 7px 16px; border-radius: 20px; font-size: 12px; font-weight: 600;
-      box-shadow: var(--shadow); opacity: 0; transform: translateY(-10px);
-      transition: all .28s; z-index: 2000; pointer-events: none;
+    /* LINHAS COM CURSO SELECIONADO (verde alternado) */
+    tr.status-ok:nth-child(odd) {
+      background-color: #ffffff !important;
     }
-    #toast.show { opacity: 1; transform: translateY(0); }
-
-    /* ── MODAIS ─────────────────────────────────── */
-    .modal-bg {
-      display: none; position: fixed; inset: 0;
-      background: rgba(0,0,0,.45); z-index: 1000;
-      align-items: center; justify-content: center;
-      animation: fadeIn .18s;
-    }
-    .modal-bg.open { display: flex; }
-    @keyframes fadeIn { from{opacity:0} to{opacity:1} }
-    .modal {
-      background: var(--surface); border-radius: var(--radius-lg);
-      padding: 24px; width: 92%; max-width: 480px; max-height: 88vh;
-      overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,.22);
-      animation: slideUp .2s;
-    }
-    @keyframes slideUp { from{transform:translateY(30px);opacity:0} to{transform:translateY(0);opacity:1} }
-    .modal-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; }
-    .modal-head h2 { font-size: 17px; font-weight: 700; }
-    .modal-close { background: none; border: none; font-size: 22px; cursor: pointer; color: var(--ink3); line-height: 1; padding: 2px 5px; border-radius: 5px; }
-    .modal-close:hover { color: var(--ink); }
-
-    .fgroup { margin-bottom: 14px; }
-    .fgroup label { display: block; font-size: 12px; font-weight: 600; margin-bottom: 5px; color: var(--ink2); }
-    .fgroup input, .fgroup select {
-      width: 100%; height: 40px; padding: 0 12px;
-      border: 1.5px solid var(--line); border-radius: 8px;
-      font-size: 13px; font-family: var(--font); outline: none;
-      background: var(--surface); transition: border-color .15s;
-    }
-    .fgroup input:focus, .fgroup select:focus { border-color: var(--blue); }
-    .modal-footer { display: flex; gap: 8px; justify-content: flex-end; margin-top: 18px; }
-
-    /* Dialog genérico */
-    #dialog-bg {
-      display: none; position: fixed; inset: 0;
-      background: rgba(0,0,0,.45); z-index: 1500;
-      align-items: center; justify-content: center;
-    }
-    #dialog-bg.open { display: flex; }
-    #dialog-box {
-      background: var(--surface); border-radius: var(--radius-lg);
-      padding: 24px; width: 90%; max-width: 420px; max-height: 80vh;
-      overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,.22);
-      text-align: center; animation: slideUp .2s;
-    }
-    #dialog-msg { font-size: 13.5px; line-height: 1.6; margin-bottom: 18px; }
-    #dialog-btns { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
-
-    /* ── MOBILE SIDEBAR OVERLAY ─────────────────── */
-    #sidebar-overlay {
-      display: none; position: fixed; inset: 0; background: rgba(0,0,0,.35);
-      z-index: 200; -webkit-tap-highlight-color: transparent;
+    tr.status-ok:nth-child(even) {
+      background-color: #f8f9fa !important;
     }
 
-    /* ── RESPONSIVE ─────────────────────────────── */
-    @media (max-width: 900px) {
-      #sidebar {
-        position: fixed; left: 0; top: 0; height: 100%;
-        transform: translateX(-100%);
-      }
-      #sidebar.open {
-        transform: translateX(0);
-        box-shadow: 4px 0 30px rgba(0,0,0,.35);
-      }
-      #sidebar-overlay.show { display: block; }
-      .stats-row { grid-template-columns: repeat(3, 1fr); }
+    /* Transferido (mantido) */
+    tr.status-transf {
+      background: #fef2f2 !important; 
+      color:#999; 
+      text-decoration:line-through;
     }
-    @media (max-width: 640px) {
-      .stats-row { grid-template-columns: repeat(2, 1fr); }
-      table { min-width: 420px; font-size: 12px; }
-      th, td { padding: 8px 9px; }
-      .desktop-only { display: none !important; }
-      .mobile-only  { display: flex !important; }
-      .topbar-title { display: none; }
+
+    /* Hover suave (melhoria visual) */
+    tr:hover {
+      background-color: #f1f3f4 !important;
+      transition: background 0.12s;
     }
-    @media (min-width: 641px) {
-      .mobile-only { display: none !important; }
+
+    /* DROPDOWN DE ESCOLHA DO CURSO — FONTE 1PX MAIOR */
+    select {
+      padding: 5px 8px; 
+      width: 100%; 
+      min-width: 260px;
+      border: 1.5px solid #dadce0; 
+      border-radius: 5px;
+      font-size: 12px;                  /* ← aumentado de 10px para 11px */
+      outline: none; 
+      font-family: inherit;
+      background: #fff;
     }
+    select:focus { border-color: #1a73e8; }
+    select option { font-size: 12px; }   /* também maior dentro do dropdown */
+
+    button { border:none; padding:5px 8px; border-radius:4px; cursor:pointer; color:white; font-weight:600; font-size:10px; transition:all .15s; font-family:inherit; }
+    .btn-save   { background:#1e8e3e; } .btn-save:hover   { background:#137333; }
+    .btn-save:disabled { background:#ccc; cursor:not-allowed; }
+    .btn-limpar { background:#f9ab00; margin-left:3px; } .btn-limpar:hover { background:#e37400; }
+    .btn-editar { background:#1a73e8; margin-left:3px; } .btn-editar:hover { background:#1565c0; }
+    .btn-transf { background:#d93025; margin-left:3px; } .btn-transf:hover { background:#b31412; }
+    .btn-desf   { background:#f57c00; margin-left:3px; } .btn-desf:hover   { background:#e65100; }
+    .btn-excluir{ background:#5f6368; margin-left:3px; } .btn-excluir:hover{ background:#3c4043; }
+
+    #loading { font-size:14px; text-align:center; padding:40px; color:#777; }
+    .error-msg { background:#fce8e6; color:#c5221f; padding:10px 14px; border-radius:6px; margin:10px 14px; font-size:12px; }
+    .nome-curso { font-size:10px; color:#1a73e8; font-weight:500; display:block; margin-top:2px; }
+    .info-horario { font-size:10px; color:#666; }
+
+    /* ═══════ MODAIS ═══════ */
+    .modal { display:none; position:fixed; z-index:1000; left:0;top:0;width:100%;height:100%; background:rgba(0,0,0,.45); animation:fadeIn .2s; }
+    @keyframes fadeIn{from{opacity:0}to{opacity:1}}
+    .modal-content { background:white; margin:5% auto; padding:22px; border-radius:12px; width:90%; max-width:500px; max-height:85vh; overflow-y:auto; box-shadow:0 8px 28px rgba(0,0,0,.2); animation:slideDown .22s; }
+    @keyframes slideDown{from{transform:translateY(-36px);opacity:0}to{transform:translateY(0);opacity:1}}
+    .modal-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; }
+    .modal-header h2 { margin:0; color:#1a73e8; font-size:17px; }
+    .close { color:#aaa; font-size:24px; font-weight:bold; cursor:pointer; line-height:16px; }
+    .close:hover { color:#333; }
+    .form-group { margin-bottom:13px; }
+    .form-group label { display:block; margin-bottom:4px; font-weight:600; color:#333; font-size:13px; }
+    .form-group input,.form-group select { width:100%; padding:8px 11px; border:1.5px solid #dadce0; border-radius:6px; font-size:13px; outline:none; font-family:inherit; }
+    .form-group input:focus,.form-group select:focus { border-color:#1a73e8; }
+    .nota-input { padding:4px; border:1.5px solid #dadce0; border-radius:4px; font-size:11px; text-align:center; outline:none; width:100%; font-family:inherit; }
+    .nota-input:focus { border-color:#1a73e8; }
+    .form-actions { display:flex; gap:10px; justify-content:flex-end; margin-top:16px; }
+    .btn-modal { padding:8px 18px; border:none; border-radius:6px; font-weight:600; font-size:13px; cursor:pointer; transition:all .18s; font-family:inherit; }
+    .btn-cancelar { background:#f1f3f4; color:#5f6368; } .btn-cancelar:hover { background:#e8eaed; }
+    .btn-confirmar { background:#1e8e3e; color:white; } .btn-confirmar:hover { background:#137333; }
+    .btn-confirmar:disabled { background:#ccc; cursor:not-allowed; }
+
+    .custom-dialog{display:none;position:fixed;z-index:2000;left:0;top:0;width:100%;height:100%;background:rgba(0,0,0,.45);align-items:center;justify-content:center;}
+    .custom-dialog.show{display:flex;}
+    .custom-dialog-content{background:white;padding:22px;border-radius:12px;box-shadow:0 8px 28px rgba(0,0,0,.2);max-width:90vw;max-height:90vh;overflow-y:auto;text-align:center;animation:slideDown .22s;}
+    .custom-dialog-message{font-size:13px;color:#333;margin-bottom:16px;line-height:1.5;}
+    .custom-dialog-buttons{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;}
+    .dialog-btn{padding:8px 18px;border:none;border-radius:6px;font-weight:600;font-size:13px;cursor:pointer;transition:all .18s;font-family:inherit;}
+    .dialog-btn-confirm{background:#1e8e3e;color:white;}.dialog-btn-confirm:hover{background:#137333;}
+    .dialog-btn-cancel{background:#f1f3f4;color:#5f6368;}.dialog-btn-cancel:hover{background:#e8eaed;}
+    .dialog-btn-ok{background:#1a73e8;color:white;min-width:80px;}.dialog-btn-ok:hover{background:#1565c0;}
+
+    @media print {
+      body * { visibility:hidden; }
+      .custom-dialog-content,.custom-dialog-content * { visibility:visible; }
+      .custom-dialog-content { position:absolute;left:0;top:0;width:100%;max-width:100%;max-height:none;box-shadow:none; }
+      .dialog-btn { display:none !important; }
+    }
+  
+
+    /* ===== FIGMA OVERRIDES / REFATORAÇÃO VISUAL ===== */
+    :root{--bg:#f4f6fb;--surface:#ffffff;--surface-2:#f8fafc;--text:#0f172a;--muted:#64748b;--line:#e5e7eb;--line-2:#d8dee8;--primary:#2563eb;--primary-dark:#1d4ed8;--success:#16a34a;--warning:#d97706;--danger:#dc2626;--purple:#7c3aed;--shadow:0 12px 30px rgba(15,23,42,.06)}
+    body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);display:flex;height:100vh;overflow:hidden}
+    #sidebar{width:300px;min-width:300px;background:linear-gradient(180deg,#081a44 0%,#071635 100%);color:#fff;box-shadow:none;border-right:1px solid rgba(255,255,255,.04);transition:width .25s ease,min-width .25s ease,transform .25s ease}
+    #sidebar.collapsed{width:0;min-width:0}
+    .sidebar-header{padding:22px 16px 16px;border-bottom:1px solid rgba(255,255,255,.08)}
+    .sidebar-logo{display:block;font-size:13px;font-weight:600;color:rgba(255,255,255,.7);margin-bottom:6px}
+    .sidebar-logo::after{content:'Gestão Educacional';display:block;font-size:29px;line-height:1.06;font-weight:700;color:#fff;letter-spacing:-.03em;margin-top:4px;max-width:250px;word-break:break-word}
+    .sidebar-subtitle{display:none}
+    .sidebar-section{padding:10px 8px 4px}.sidebar-section-title{font-size:11px;padding:10px 10px 8px;color:rgba(255,255,255,.38);letter-spacing:.08em}
+    .trilha-btn,.sidebar-btn{padding:12px 12px;border-radius:14px;color:#dbe4f5;gap:12px;font-size:13px;font-weight:600;display:flex;align-items:center;margin-bottom:4px}
+    .trilha-btn:hover,.sidebar-btn:hover{background:rgba(255,255,255,.07);color:#fff}.trilha-btn.active{background:linear-gradient(180deg,var(--primary) 0%,var(--primary-dark) 100%);box-shadow:inset 0 0 0 1px rgba(255,255,255,.08)}
+    .trilha-dot,.sidebar-btn .icon{width:22px;height:22px;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;font-size:12px;font-weight:700;color:#fff;background:rgba(255,255,255,.18)}
+    .dot-all{background:#475569}.dot-tr1{background:#22c55e}.dot-tr2{background:#3b82f6}.dot-tr3{background:#a855f7}.sb-green .icon{background:#16a34a}.sb-purple .icon{background:#8b5cf6}.sb-blue .icon{background:#2563eb}.sb-orange .icon{background:#f59e0b}
+    .sidebar-footer{padding:14px 14px 18px;border-top:1px solid rgba(255,255,255,.08)}.status-ind{font-size:12px;color:rgba(255,255,255,.72)}.status-dot{width:8px;height:8px;box-shadow:0 0 0 4px rgba(34,197,94,.18)}
+    #main{background:var(--bg)}
+    .topbar{background:rgba(255,255,255,.88);backdrop-filter:blur(10px);border-bottom:1px solid var(--line);padding:16px 22px;height:auto;min-height:78px;box-shadow:none;gap:14px}
+    .topbar-toggle{width:42px;height:42px;border-radius:12px;border:1px solid var(--line);background:#fff;color:var(--text);display:inline-flex;align-items:center;justify-content:center;padding:0;font-size:18px}
+    .topbar-title{font-size:18px;font-weight:700;letter-spacing:-.02em;display:flex;flex-direction:column;gap:4px}.topbar-title::after{content:'Gestão completa de matrículas';font-size:13px;font-weight:500;color:var(--muted)}
+    .topbar-search{max-width:320px}.topbar-search input{height:44px;border-radius:12px;border:1px solid var(--line);background:#f8fafc;padding:0 14px 0 40px;font-size:14px}.search-icon{left:14px;font-size:14px;color:var(--muted)}.total-badge{border-radius:999px;padding:8px 12px;font-size:12px;background:#eef2ff;color:#1d4ed8;align-self:center}
+    .dashboard-scroll{flex:1;overflow:auto;padding:22px}.stats-grid{display:grid;grid-template-columns:repeat(5,minmax(140px,1fr));gap:14px;margin-bottom:20px}
+    .stat-card{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:18px;min-height:126px;box-shadow:0 1px 2px rgba(15,23,42,.04);display:flex;flex-direction:column;justify-content:space-between}.stat-label{font-size:13px;color:var(--muted);font-weight:500}.stat-bottom{display:flex;justify-content:space-between;align-items:flex-end;gap:10px}.stat-value{font-size:38px;line-height:1;font-weight:600;letter-spacing:-.05em}.stat-icon{font-size:32px;opacity:.25}.stat-card.green .stat-value{color:var(--success)}.stat-card.red .stat-value{color:var(--danger)}.stat-card.orange .stat-value{color:#f97316}.stat-card.purple .stat-value{color:var(--purple)}
+    .panel{background:var(--surface);border:1px solid var(--line);border-radius:20px;box-shadow:0 1px 2px rgba(15,23,42,.04);overflow:hidden}.panel-header{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:18px 22px;border-bottom:1px solid var(--line)}.panel-title h2{font-size:18px;font-weight:700;letter-spacing:-.02em;margin-bottom:4px}.panel-title p{font-size:14px;color:var(--muted)}.panel-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.panel-btn{height:38px;padding:0 14px;border-radius:10px;border:1px solid var(--line);background:#fff;color:var(--text);font-weight:600;cursor:pointer}
+    .monitor-wrap{background:transparent;border-bottom:0;padding:14px 18px 0}#monitor{display:flex;gap:10px;justify-content:flex-start;padding:0 0 14px;overflow-x:auto}
+    .card{min-width:168px;max-width:none;border-radius:14px;padding:12px;text-align:left;background:#f8fafc;border:1px solid var(--line);box-shadow:none}.card.selected{background:#eff6ff;border:1px solid #bfdbfe;box-shadow:inset 0 0 0 1px rgba(37,99,235,.15)}.card.lotado{background:#fff1f2;border-color:#fecdd3}.card:hover{transform:translateY(-1px);box-shadow:0 6px 18px rgba(15,23,42,.06)}.card h4{font-size:13px !important;color:var(--text);margin-bottom:3px !important}.card p{font-size:12px !important;color:var(--muted);height:auto;margin-bottom:4px !important}.card .vagas{font-size:24px;color:var(--success);letter-spacing:-.03em}.card.lotado .vagas{color:var(--danger)}
+    .table-section{padding:0 18px 18px;display:block;flex:auto;overflow:visible}.table-container{border:1px solid var(--line);border-radius:16px;overflow:auto;background:#fff}table{min-width:1120px;font-size:13px}th{background:#f8fafc;color:#334155;padding:14px 12px;font-size:12px;border-bottom:1px solid var(--line);top:0}td{padding:12px;border-bottom:1px solid #eef2f7;vertical-align:middle}tr{background:#fff}tr:nth-child(even){background:#fbfcff}tr:hover{background:#f7faff !important}
+    .rank-badge,.turma-pill,.mencao-pill,.status-pill,.matricula-pill,.curso-pill{display:inline-flex;align-items:center;justify-content:center;border-radius:999px;font-weight:600;white-space:nowrap}.rank-badge{width:34px;height:34px;background:#eef2ff;color:#4338ca;font-size:12px}.matricula-pill{padding:6px 10px;background:#f8fafc;border:1px solid var(--line);color:#334155;font-size:12px}.turma-pill{padding:6px 10px;background:#f8fafc;border:1px solid var(--line);color:#334155;font-size:12px}.mencao-pill{padding:6px 10px;background:#fff7ed;color:#b45309;font-size:12px}.status-pill{padding:6px 10px;font-size:12px}.status-pill.success{background:#dcfce7;color:#166534}.status-pill.warning{background:#fef3c7;color:#92400e}.status-pill.danger{background:#fee2e2;color:#991b1b}.curso-pill{padding:5px 9px;background:#eff6ff;color:#1d4ed8;font-size:12px;margin-right:6px;margin-top:4px}.nome-cell{display:flex;flex-direction:column;gap:3px}.nome-cell strong{font-size:13px}.nome-cell small{color:var(--muted);font-size:12px}.curso-cell{min-width:290px}.nome-curso{font-size:12px;color:#1d4ed8;font-weight:600;display:block;margin-top:8px}.info-horario{font-size:12px;color:#64748b}
+    select{height:40px;border-radius:10px;border:1px solid var(--line-2);background:#fff;padding:0 12px;min-width:240px}select:focus{border-color:#c7d2fe;box-shadow:0 0 0 4px rgba(37,99,235,.08)}
+    .actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}button{font-family:inherit}.btn-save,.btn-limpar,.btn-editar,.btn-transf,.btn-desf,.btn-excluir{width:34px;height:34px;padding:0;border-radius:10px;border:1px solid transparent;font-size:0;position:relative;display:inline-flex;align-items:center;justify-content:center;color:#fff;font-weight:700}.btn-save::before,.btn-limpar::before,.btn-editar::before,.btn-transf::before,.btn-desf::before,.btn-excluir::before{font-size:14px;line-height:1;color:#fff}.btn-save{background:#16a34a}.btn-save:hover{background:#15803d}.btn-save::before{content:'✓'}.btn-save:disabled{background:#9ca3af;cursor:not-allowed}.btn-limpar{background:#f59e0b}.btn-limpar:hover{background:#d97706}.btn-limpar::before{content:'⌫'}.btn-editar{background:#2563eb}.btn-editar:hover{background:#1d4ed8}.btn-editar::before{content:'✎'}.btn-transf{background:#dc2626}.btn-transf:hover{background:#b91c1c}.btn-transf::before{content:'⇄'}.btn-desf{background:#f97316}.btn-desf:hover{background:#ea580c}.btn-desf::before{content:'↺'}.btn-excluir{background:#64748b}.btn-excluir:hover{background:#475569}.btn-excluir::before{content:'✕'}
+    .modal{background:rgba(15,23,42,.48);backdrop-filter:blur(3px)}.modal-content,.custom-dialog-content{border-radius:20px;border:1px solid var(--line);box-shadow:var(--shadow)}.modal-content{padding:24px}.modal-header h2{font-size:20px;color:var(--text);letter-spacing:-.02em}.close{width:38px;height:38px;border-radius:10px;background:#f8fafc;border:1px solid var(--line);display:inline-flex;align-items:center;justify-content:center;color:var(--muted);font-size:22px;line-height:1}.form-group label{font-size:13px;color:#334155}.form-group input,.form-group select{border-radius:12px;border:1px solid var(--line-2);padding:10px 12px}.form-group input:focus,.form-group select:focus,.nota-input:focus{border-color:#c7d2fe;box-shadow:0 0 0 4px rgba(37,99,235,.08)}.form-actions{margin-top:18px}.btn-modal,.dialog-btn{border-radius:10px;height:38px;padding:0 14px}.btn-cancelar,.dialog-btn-cancel{background:#f1f5f9 !important;color:#334155 !important;border:1px solid var(--line)}.btn-confirmar,.dialog-btn-confirm{background:#16a34a !important;color:#fff !important}.dialog-btn-ok{background:#2563eb !important;color:#fff !important}.custom-dialog-message{font-size:14px}
+    @media (max-width:1180px){.stats-grid{grid-template-columns:repeat(3,minmax(140px,1fr))}}@media (max-width:920px){body{overflow:auto;display:block}#sidebar{position:fixed;left:0;top:0;bottom:0;transform:translateX(-100%);z-index:40;width:min(84vw,280px);min-width:min(84vw,280px)}#sidebar.mobile-open{transform:translateX(0)}#sidebar.collapsed{width:min(84vw,280px);min-width:min(84vw,280px)}#main{height:auto;min-height:100vh}.topbar{padding:14px;flex-wrap:wrap}.topbar-search{order:3;width:100%;max-width:none}.dashboard-scroll{padding:14px}.stats-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.panel-header{padding:16px}.table-section{padding:0 14px 14px}.monitor-wrap{padding:12px 14px 0}}@media (max-width:640px){.stats-grid{grid-template-columns:1fr}.stat-value{font-size:32px}.topbar-title{font-size:16px}.panel-title h2{font-size:16px}}
+
+  
+    /* ===== Ajustes extras para base mais intuitiva ===== */
+    .stat-card{cursor:pointer}
+    /* Destaque do card de filtro ativo */
+    .stat-card.filtro-ativo{
+      border-color:#2563eb !important;
+      box-shadow:0 0 0 3px rgba(37,99,235,.18) !important;
+      background:#eff6ff !important;
+    }
+    .stat-card.filtro-ativo .stat-label{color:#2563eb;font-weight:700}
+    .stat-card.filtro-ativo .stat-value{color:#1d4ed8 !important}
+    .panel-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+    .action-menu{position:relative;display:inline-block}
+    .icon-btn,.sidebar-icon-box{
+      width:34px;height:34px;padding:0;border-radius:10px;border:1px solid transparent;
+      font-size:0;position:relative;display:inline-flex;align-items:center;justify-content:center;
+      color:#fff;font-weight:700;cursor:pointer
+    }
+    .sidebar-icon-box{width:22px;height:22px;border-radius:8px;font-size:12px}
+    .icon-btn::before{font-size:14px;line-height:1;color:#fff}
+    .icon-save::before{content:'✓'}
+    .icon-clear::before{content:'⌫'}
+    .icon-edit::before{content:'✎'}
+    .icon-transfer::before{content:'⇄'}
+    .icon-undo::before{content:'↺'}
+    .icon-delete::before{content:'✕'}
+    .icon-more::before{content:'⋯';font-size:18px}
+    .bg-green{background:#16a34a}.bg-orange{background:#f59e0b}.bg-blue{background:#2563eb}.bg-red{background:#dc2626}.bg-slate{background:#64748b}.bg-purple{background:#8b5cf6}
+    .mobile-name-wrap{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
+    .mobile-action-trigger{flex-shrink:0}
+    .mobile-action-list{
+      position:absolute;top:40px;right:0;z-index:20;background:#fff;border:1px solid var(--line);
+      border-radius:12px;box-shadow:0 12px 30px rgba(15,23,42,.12);padding:6px;min-width:150px;display:none
+    }
+    .mobile-action-list.open{display:block}
+    .mobile-action-item{
+      width:100%;border:0;background:#fff;color:var(--text);padding:9px 10px;border-radius:8px;
+      text-align:left;font-size:13px;font-weight:600;cursor:pointer
+    }
+    .mobile-action-item:hover{background:#f8fafc}
+    .mobile-only{display:none}
+    .desktop-only{display:inline-flex}
+    .btn-placeholder{background:#f1f5f9!important;color:#334155!important;border:1px solid var(--line)!important}
+    @media (max-width:640px){
+      #tabelaAlunos{min-width:0!important}
+      #tabelaAlunos thead th.col-hide-mobile,
+      #tabelaAlunos tbody td.col-hide-mobile{display:none!important}
+      #tabelaAlunos thead th.col-mobile,
+      #tabelaAlunos tbody td.col-mobile{display:table-cell!important}
+      .desktop-only{display:none!important}
+      .mobile-only{display:inline-flex}
+      .panel-actions{width:100%}
+      .panel-actions .panel-btn{flex:1 1 auto}
+      .curso-cell{min-width:180px}
+      .mobile-course-stack{display:flex;flex-direction:column;gap:6px}
+      .mobile-course-title{font-size:12px;color:#1d4ed8;font-weight:700}
+      .mobile-prof-stack{display:flex;flex-wrap:wrap;gap:6px}
+      .mobile-prof-stack .curso-pill{margin:0}
+      .panel{overflow:visible}
+    }
+
   </style>
 </head>
 <body>
 
-<!-- SIDEBAR OVERLAY (mobile) -->
-<div id="sidebar-overlay" onclick="toggleSidebar()"></div>
+  <!-- Badge -->
+  <div id="updateBadge" class="update-badge">✓ Dados atualizados</div>
 
-<!-- SIDEBAR -->
-<nav id="sidebar">
-  <div class="sb-logo">
-    <div class="sb-logo-label">Sistema Escolar</div>
-    <div class="sb-logo-title">Gestão de Percursos<br>2026</div>
-  </div>
-
-  <div class="sb-section">
-    <div class="sb-section-label">Trilhas</div>
-    <button class="sb-btn active" id="btnTODAS" onclick="selectTrilha(null, this)">
-      <span class="sb-dot dot-all">★</span> Todas as trilhas
-    </button>
-    <button class="sb-btn" id="btnTR1" onclick="selectTrilha('TR1', this)">
-      <span class="sb-dot dot-tr1">1</span> Trilha 1° Ano
-    </button>
-    <button class="sb-btn" id="btnTR2" onclick="selectTrilha('TR2', this)">
-      <span class="sb-dot dot-tr2">2</span> Trilha 2° Ano
-    </button>
-    <button class="sb-btn" id="btnTR3" onclick="selectTrilha('TR3', this)">
-      <span class="sb-dot dot-tr3">3</span> Trilha 3° Ano
-    </button>
-  </div>
-
-  <div class="sb-section">
-    <div class="sb-section-label">Ações</div>
-    <button class="sb-btn" onclick="abrirModal('modal-add')">
-      <span class="sb-dot" style="background:#162d42;color:#60a5fa">+</span> Adicionar aluno
-    </button>
-    <button class="sb-btn" onclick="abrirSorteio()">
-      <span class="sb-dot" style="background:#2d1640;color:#c084fc">🎲</span> Sorteio automático
-    </button>
-    <button class="sb-btn" onclick="abrirImport()">
-      <span class="sb-dot" style="background:#163020;color:#4ade80">↑</span> Importar XML
-    </button>
-    <button class="sb-btn" onclick="abrirTransferidos()">
-      <span class="sb-dot" style="background:#2d1a0a;color:#fb923c">⚠</span> Transferidos
-    </button>
-  </div>
-
-  <div class="sb-section">
-    <div class="sb-section-label">Relatórios</div>
-    <button class="sb-btn" onclick="abrirListaTurma()">
-      <span class="sb-dot" style="background:#1a2030;color:#93c5fd">📋</span> Lista por turma
-    </button>
-    <button class="sb-btn" onclick="abrirListaProfessor()">
-      <span class="sb-dot" style="background:#1a2030;color:#93c5fd">👤</span> Lista por professor
-    </button>
-    <button class="sb-btn" onclick="exportarCSV()">
-      <span class="sb-dot" style="background:#1a2030;color:#6ee7b7">⬇</span> Exportar CSV
-    </button>
-  </div>
-
-  <div class="sb-footer">
-    <div class="sb-online"></div>
-    <span id="last-update">Aguardando...</span>
-  </div>
-</nav>
-
-<!-- MAIN -->
-<div id="main">
-
-  <!-- TOPBAR -->
-  <div class="topbar">
-    <button class="topbar-toggle" onclick="toggleSidebar()">☰</button>
-    <span class="topbar-title">Gestão de Percursos</span>
-    <div class="topbar-search">
-      <span class="ico">🔍</span>
-      <input type="text" id="busca" placeholder="Buscar aluno ou matrícula..." oninput="filtrar()" />
+  <!-- Dialog -->
+  <div id="customDialog" class="custom-dialog">
+    <div class="custom-dialog-content">
+      <div class="custom-dialog-message" id="dialogMessage"></div>
+      <div class="custom-dialog-buttons" id="dialogButtons"></div>
     </div>
-    <span class="badge-total" id="badge-total">— alunos</span>
   </div>
 
-  <!-- DASHBOARD -->
-  <div class="dashboard">
+  <!-- Modal Adicionar Aluno -->
+  <div id="modalAddAluno" class="modal">
+    <div class="modal-content">
+      <div class="modal-header"><h2>➕ Adicionar Novo Aluno</h2><span class="close" onclick="fecharModal()">&times;</span></div>
+      <form id="formAddAluno">
+        <div class="form-group"><label>Matrícula *</label><input type="text" id="inputMatricula" required></div>
+        <div class="form-group"><label>Nome do Estudante *</label><input type="text" id="inputNome" required></div>
+        <div class="form-group"><label>Turma *</label><input type="text" id="inputTurma" placeholder="Ex: 1A, 2B, 3C" required></div>
+        <div class="form-group"><label>Menção</label><input type="text" id="inputMencao" placeholder="Ex: 9.25"></div>
+        <div class="form-group"><label>Ranking</label><input type="text" id="inputRanking" placeholder="Ex: 1"></div>
+        <div class="form-group">
+          <label>Trilha *</label>
+          <select id="inputTR" required>
+            <option value="">-- Selecione --</option>
+            <option value="TR1">TR1 - 1º Ano</option>
+            <option value="TR2">TR2 - 2º Ano</option>
+            <option value="TR3">TR3 - 3º Ano</option>
+          </select>
+        </div>
+        <div class="form-actions">
+          <button type="button" class="btn-modal btn-cancelar" onclick="fecharModal()">Cancelar</button>
+          <button type="submit" class="btn-modal btn-confirmar" id="btnSalvarAluno">Salvar</button>
+        </div>
+      </form>
+    </div>
+  </div>
 
-    <!-- STAT CARDS -->
-    <div class="stats-row">
-      <div class="stat" onclick="setFiltroRapido('todos')">
-        <div class="stat-label">Total</div>
-        <div class="stat-num" id="st-total">—</div>
+  <!-- Modal Importar Lote (novo) -->
+  <div id="modalImportarLote" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>📂 Importar Alunos em Lote</h2>
+        <span class="close" onclick="fecharModalImportarLote()">×</span>
       </div>
-      <div class="stat green" onclick="setFiltroRapido('matriculados')">
-        <div class="stat-label">Matriculados</div>
-        <div class="stat-num" id="st-mat">—</div>
+      
+      <p style="margin:15px 0 10px;font-size:13px;">Escolha o arquivo do site da escola:</p>
+      <input type="file" id="fileImport" accept=".xml,.csv,.pdf" style="width:100%;padding:10px;border:2px dashed #1a73e8;border-radius:8px;">
+      
+      <div style="margin-top:20px;text-align:center;">
+        <button onclick="processarImportacao()" 
+                class="btn-modal btn-confirmar" 
+                style="padding:10px 25px;font-size:14px;">
+          📤 Processar Arquivo
+        </button>
       </div>
-      <div class="stat amber" onclick="setFiltroRapido('pendentes')">
-        <div class="stat-label">Pendentes</div>
-        <div class="stat-num" id="st-pend">—</div>
+      
+      <div id="importStatus" style="margin-top:15px;font-size:12px;color:#666;text-align:center;"></div>
+    </div>
+  </div>
+
+  <!-- Modal Sorteio -->
+  <div id="modalSorteio" class="modal">
+    <div class="modal-content">
+      <div class="modal-header"><h2>🎲 Sorteio Aleatório de Vagas</h2><span class="close" onclick="fecharModalSorteio()">&times;</span></div>
+      <div id="sorteioInfo" style="margin-bottom:18px;padding:14px;background:#e8f0fe;border-radius:8px;border-left:4px solid #1a73e8;">
+        <p style="margin:0 0 8px;font-weight:600;color:#1a73e8;">Informações do Sorteio:</p>
+        <div id="sorteioStats" style="font-size:12px;color:#333;line-height:1.6;"></div>
       </div>
-      <div class="stat red" onclick="setFiltroRapido('transferidos')">
-        <div class="stat-label">Transferidos</div>
-        <div class="stat-num" id="st-transf">—</div>
-      </div>
-      <div class="stat blue" onclick="setFiltroRapido('todos')">
-        <div class="stat-label">Vagas livres</div>
-        <div class="stat-num" id="st-vagas">—</div>
+      <div style="display:flex;gap:10px;justify-content:flex-end;">
+        <button type="button" class="btn-modal btn-cancelar" onclick="fecharModalSorteio()">Cancelar</button>
+        <button type="button" class="btn-modal btn-confirmar" id="btnConfirmarSorteio">Confirmar Sorteio</button>
       </div>
     </div>
+  </div>
 
-    <!-- PAINEL -->
-    <div class="panel">
+  <!-- Modal Lista Turma -->
+  <div id="modalListaTurma" class="modal">
+    <div class="modal-content" style="max-width:500px;">
+      <div class="modal-header"><h2>📄 Gerar Lista por Turma</h2><span class="close" onclick="fecharModalListaTurma()">&times;</span></div>
+      <p style="color:#666;font-size:12px;margin-bottom:12px;">Selecione as turmas para gerar o PDF.</p>
+      <label style="display:block;margin-bottom:8px;font-size:12px;"><input type="checkbox" id="checkTodasTurmas" onchange="toggleTodasTurmas()"> <strong>Selecionar todas</strong></label>
+      <div id="listaTurmas" style="max-height:280px;overflow-y:auto;border:1px solid #dadce0;padding:8px;border-radius:6px;"></div>
+      <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:14px;">
+        <button type="button" class="btn-modal btn-cancelar" onclick="fecharModalListaTurma()">Cancelar</button>
+        <button type="button" class="btn-modal btn-confirmar" onclick="gerarPDFTurmas()">📥 Gerar PDF</button>
+      </div>
+    </div>
+  </div>
 
-      <!-- MONITOR DE VAGAS -->
-      <div class="monitor-wrap">
-        <div class="monitor-label">Monitor de vagas — clique para filtrar</div>
-        <div class="monitor-scroll" id="monitor">
-          <div style="color:var(--ink3);font-size:13px;padding:4px 0">Carregando...</div>
+  <!-- Modal Lista Professor -->
+  <div id="modalListaProfessor" class="modal">
+    <div class="modal-content" style="max-width:500px;">
+      <div class="modal-header"><h2>👥 Gerar Lista por Professor</h2><span class="close" onclick="fecharModalListaProfessor()">&times;</span></div>
+      <p style="color:#666;font-size:12px;margin-bottom:12px;">Selecione os professores para gerar o PDF.</p>
+      <label style="display:block;margin-bottom:8px;font-size:12px;"><input type="checkbox" id="checkTodosProfessores" onchange="toggleTodosProfessores()"> <strong>Selecionar todos</strong></label>
+      <div id="listaProfessores" style="max-height:280px;overflow-y:auto;border:1px solid #dadce0;padding:8px;border-radius:6px;"></div>
+      <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:14px;">
+        <button type="button" class="btn-modal btn-cancelar" onclick="fecharModalListaProfessor()">Cancelar</button>
+        <button type="button" class="btn-modal btn-confirmar" onclick="gerarPDFProfessores()">📥 Gerar PDF</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Editar -->
+  <div id="modalEditarAluno" class="modal">
+    <div class="modal-content" style="max-width:640px;">
+      <div class="modal-header"><h2>✏️ Editar Aluno</h2><span class="close" onclick="fecharModalEditar()">&times;</span></div>
+      <form id="formEditarAluno">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:13px;">
+          <div class="form-group"><label>Matrícula *</label><input type="text" id="editMatricula" required></div>
+          <div class="form-group"><label>Turma *</label><input type="text" id="editTurma" required></div>
+        </div>
+        <div class="form-group"><label>Nome do Estudante *</label><input type="text" id="editNome" required></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:13px;">
+          <div class="form-group"><label>Menção (0 a 10)</label><input type="text" id="editMencao" placeholder="Ex: 9.25"></div>
+          <div class="form-group">
+            <label>Trilha *</label>
+            <select id="editTR" required>
+              <option value="TR1">TR1 - 1º Ano</option>
+              <option value="TR2">TR2 - 2º Ano</option>
+              <option value="TR3">TR3 - 3º Ano</option>
+            </select>
+          </div>
+        </div>
+        <div style="margin:16px 0;padding:13px;background:#f8f9fa;border-radius:8px;border-left:4px solid #1a73e8;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:9px;">
+            <label style="font-weight:600;color:#1a73e8;margin:0;">📊 Calculadora de Média</label>
+            <button type="button" class="btn-modal btn-cancelar" onclick="limparNotas()" style="padding:3px 9px;font-size:11px;">Limpar</button>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:5px;">
+            <input type="text" id="nota1"  class="nota-input" placeholder="N1"  onkeyup="calcularMedia()">
+            <input type="text" id="nota2"  class="nota-input" placeholder="N2"  onkeyup="calcularMedia()">
+            <input type="text" id="nota3"  class="nota-input" placeholder="N3"  onkeyup="calcularMedia()">
+            <input type="text" id="nota4"  class="nota-input" placeholder="N4"  onkeyup="calcularMedia()">
+            <input type="text" id="nota5"  class="nota-input" placeholder="N5"  onkeyup="calcularMedia()">
+            <input type="text" id="nota6"  class="nota-input" placeholder="N6"  onkeyup="calcularMedia()">
+            <input type="text" id="nota7"  class="nota-input" placeholder="N7"  onkeyup="calcularMedia()">
+            <input type="text" id="nota8"  class="nota-input" placeholder="N8"  onkeyup="calcularMedia()">
+            <input type="text" id="nota9"  class="nota-input" placeholder="N9"  onkeyup="calcularMedia()">
+            <input type="text" id="nota10" class="nota-input" placeholder="N10" onkeyup="calcularMedia()">
+            <input type="text" id="nota11" class="nota-input" placeholder="N11" onkeyup="calcularMedia()">
+            <input type="text" id="nota12" class="nota-input" placeholder="N12" onkeyup="calcularMedia()">
+          </div>
+          <div style="margin-top:9px;padding:7px;background:white;border-radius:6px;text-align:center;">
+            <strong style="color:#1a73e8;">Média:</strong>
+            <span id="mediaCalculada" style="font-size:16px;font-weight:bold;color:#1e8e3e;"> -</span>
+            <button type="button" class="btn-modal btn-confirmar" onclick="usarMedia()" style="margin-left:8px;padding:3px 9px;font-size:11px;">Usar</button>
+          </div>
+        </div>
+        <div class="form-actions">
+          <button type="button" class="btn-modal btn-cancelar" onclick="fecharModalEditar()">Cancelar</button>
+          <button type="submit" class="btn-modal btn-confirmar" id="btnSalvarEdicao">Salvar Alterações</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+
+  <!-- Modal Gerenciar Cursos -->
+  <div id="modalGerenciarCursos" class="modal">
+    <div class="modal-content" style="max-width:760px;">
+      <div class="modal-header">
+        <h2>⚙️ Gerenciar Cursos</h2>
+        <span class="close" onclick="fecharModalGerenciarCursos()">&times;</span>
+      </div>
+      <div style="display:grid;gap:14px;">
+        <div style="padding:14px;border:1px solid #e5e7eb;border-radius:14px;background:#f8fafc;">
+          <strong style="display:block;margin-bottom:6px;">Em finalização</strong>
+          <div style="font-size:13px;line-height:1.55;color:#475569;">
+            Este espaço será usado para gerenciar cursos, trilhas, professores, dupla de professores,
+            salas, dias, horários, ordem por média ou sorteio e regras de matrícula.
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;">
+          <div style="padding:14px;border:1px solid #e5e7eb;border-radius:14px;">
+            <strong style="display:block;margin-bottom:6px;">Importar cursos</strong>
+            <div style="font-size:13px;color:#64748b;line-height:1.5;margin-bottom:10px;">
+              CSV ou XLS com identificação de cabeçalhos para mapear colunas.
+            </div>
+            <button class="btn-modal btn-placeholder" type="button" onclick="mostrarDialog('Módulo de importação de cursos em finalização.', 'info')">Em finalização</button>
+          </div>
+          <div style="padding:14px;border:1px solid #e5e7eb;border-radius:14px;">
+            <strong style="display:block;margin-bottom:6px;">Importar estudantes</strong>
+            <div style="font-size:13px;color:#64748b;line-height:1.5;margin-bottom:10px;">
+              CSV, XLS ou XML com escolha das colunas que serão utilizadas.
+            </div>
+            <button class="btn-modal btn-placeholder" type="button" onclick="mostrarDialog('Módulo de importação de estudantes em finalização.', 'info')">Em finalização</button>
+          </div>
+        </div>
+      </div>
+      <div class="form-actions">
+        <button type="button" class="btn-modal btn-cancelar" onclick="fecharModalGerenciarCursos()">Fechar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════ SIDEBAR ══════ -->
+  <nav id="sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-logo">Sistema de</div>
+      <div class="sidebar-subtitle">CED03 CCMDF · 2026</div>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-section-title">Filtrar Trilha</div>
+      <button class="trilha-btn active" id="btnTODAS" onclick="selecionarTrilha(null)"><span class="trilha-dot dot-all">•</span><span>TODAS</span></button>
+      <button class="trilha-btn" id="btnTR1" onclick="selecionarTrilha('TR1')"><span class="trilha-dot dot-tr1">1</span><span>TR1 – 1º Ano</span></button>
+      <button class="trilha-btn" id="btnTR2" onclick="selecionarTrilha('TR2')"><span class="trilha-dot dot-tr2">2</span><span>TR2 – 2º Ano</span></button>
+      <button class="trilha-btn" id="btnTR3" onclick="selecionarTrilha('TR3')"><span class="trilha-dot dot-tr3">3</span><span>TR3 – 3º Ano</span></button>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-section-title">Ações</div>
+      <button class="sidebar-btn sb-green" onclick="abrirModal()"><span class="icon">＋</span><span>Adicionar Aluno</span></button>
+      <button class="sidebar-btn sb-purple" onclick="abrirModalImportarLote()"><span class="icon">⇪</span><span>Importar em Lote</span></button>
+      <button class="sidebar-btn sb-blue" id="btnSorteio" onclick="abrirModalSorteio()"><span class="icon">★</span><span>Sorteio de Vagas</span></button>
+      <button class="sidebar-btn sb-blue" onclick="abrirModalGerenciarCursos()"><span class="icon">⚙</span><span>Gerenciar Cursos</span></button>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-section-title">Relatórios</div>
+      <button class="sidebar-btn sb-orange" onclick="abrirModalListaTurma()"><span class="icon">≣</span><span>Lista por Turma</span></button>
+      <button class="sidebar-btn sb-orange" onclick="abrirModalListaProfessor()"><span class="icon">⇄</span><span>Lista por Professor</span></button>
+      <button class="sidebar-btn sb-blue" onclick="abrirDialogExportacaoCSV()"><span class="icon">CSV</span><span>Exportar CSV</span></button>
+      <button class="sidebar-btn sb-orange" onclick="filtrarPainelRapido('naoEnturmados')"><span class="icon">!</span><span>Verificar Não Enturmados</span></button>
+      <button class="sidebar-btn sb-purple" onclick="filtrarPainelRapido('transferidos')"><span class="icon">⇄</span><span>Filtrar Transferidos</span></button>
+    </div>
+
+    <div class="sidebar-footer">
+      <div class="status-ind"><span class="status-dot"></span><span>Conectado</span></div>
+    </div>
+  </nav>
+
+  <!-- ══════ MAIN ══════ -->
+  <div id="main">
+
+    <div class="topbar">
+      <button class="topbar-toggle" onclick="toggleSidebar()" title="Abrir/fechar menu">☰</button>
+      <span class="topbar-title">Painel de Matrículas 2026</span>
+      <div class="topbar-search">
+        <span class="search-icon">🔎</span>
+        <input type="text" id="filtro" placeholder="Buscar por nome, matrícula ou ranking..." onkeyup="filtrar()">
+      </div>
+      <div class="total-badge" id="totalCursos">Selecione uma trilha</div>
+    </div>
+
+    <div class="dashboard-scroll">
+      <div class="stats-grid">
+        <div class="stat-card" onclick="limparFiltroRapido()">
+          <div class="stat-label">Total</div>
+          <div class="stat-bottom"><div class="stat-value" id="cardTotal">0</div><div class="stat-icon">👥</div></div>
+        </div>
+        <div class="stat-card green" onclick="filtrarPainelRapido('matriculados')">
+          <div class="stat-label">Matriculados</div>
+          <div class="stat-bottom"><div class="stat-value" id="cardMatriculados">0</div><div class="stat-icon">✅</div></div>
+        </div>
+        <div class="stat-card red" onclick="filtrarPainelRapido('naoEnturmados')">
+          <div class="stat-label">Não Enturmados</div>
+          <div class="stat-bottom"><div class="stat-value" id="cardNaoEnturmados">0</div><div class="stat-icon">❗</div></div>
+        </div>
+        <div class="stat-card orange" onclick="filtrarPainelRapido('transferidos')">
+          <div class="stat-label">Transferidos</div>
+          <div class="stat-bottom"><div class="stat-value" id="cardTransferidos">0</div><div class="stat-icon">👤</div></div>
+        </div>
+        <div class="stat-card purple" onclick="filtrarPainelRapido('disponiveis')">
+          <div class="stat-label">Vagas Disponíveis</div>
+          <div class="stat-bottom"><div class="stat-value" id="cardVagas">0</div><div class="stat-icon">📈</div></div>
         </div>
       </div>
 
-      <!-- PANEL HEADER -->
-      <div class="panel-header">
-        <span class="panel-title">Alunos</span>
-        <span class="panel-sub" id="panel-sub"></span>
-        <div class="panel-actions">
-          <button class="btn" onclick="filtrarRapido('pendentes')">⚡ Só pendentes</button>
-          <button class="btn" onclick="filtrarRapido('todos')">✕ Limpar filtro</button>
-          <button class="btn primary" onclick="abrirModal('modal-add')">+ Adicionar</button>
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title">
+            <h2>Lista de Alunos</h2>
+            <p><span id="qtdeEncontrados">0</span> aluno(s) encontrado(s)</p>
+          </div>
+          <div class="panel-actions">
+            <button class="panel-btn" onclick="abrirModalListaTurma()">Lista Turma</button>
+            <button class="panel-btn" onclick="abrirModalListaProfessor()">Lista Professor</button>
+            <button class="panel-btn" onclick="abrirDialogExportacaoCSV()">Exportar CSV</button>
+          </div>
+        </div>
+
+        <div class="monitor-wrap">
+          <div id="monitor"></div>
+        </div>
+
+        <div class="table-section">
+          <div id="loading">⏳ Aguardando seleção de trilha...</div>
+          <div id="error" class="error-msg" style="display:none;"></div>
+          <div class="table-container" id="tabelaContainer" style="display:none;">
+            <table id="tabelaAlunos">
+              <thead>
+                <tr>
+                  <th width="70">Rank</th>
+                  <th width="110" class="col-hide-mobile">Matrícula</th>
+                  <th width="300">Nome</th>
+                  <th width="90">Turma</th>
+                  <th width="90" class="col-hide-mobile">Menção</th>
+                  <th width="320">Curso / Terça / Quarta</th>
+                  <th width="140" class="col-hide-mobile">Status</th>
+                  <th width="250" class="col-mobile">Ações</th>
+                </tr>
+              </thead>
+              <tbody id="corpoTabela"></tbody>
+            </table>
+          </div>
         </div>
       </div>
+    </div>
 
-      <!-- LOADING / ERROR -->
-      <div id="loading">
-        <div class="spinner"></div>
-        Carregando dados da planilha...
-      </div>
-      <div id="error-msg"></div>
-
-      <!-- TABELA -->
-      <div class="table-wrap" id="tabela-wrap" style="display:none">
-        <table>
-          <thead>
-            <tr>
-              <th>#</th>
-              <th class="desktop-only">Matrícula</th>
-              <th>Nome</th>
-              <th>Turma</th>
-              <th class="desktop-only">Menção</th>
-              <th>Curso / Horários</th>
-              <th class="desktop-only">Status</th>
-              <th>Ações</th>
-            </tr>
-          </thead>
-          <tbody id="tbody"></tbody>
-        </table>
-      </div>
-    </div><!-- /panel -->
-  </div><!-- /dashboard -->
-</div><!-- /main -->
-
-<!-- TOAST -->
-<div id="toast">✓ Dados atualizados</div>
-
-<!-- DIALOG GENÉRICO -->
-<div id="dialog-bg">
-  <div id="dialog-box">
-    <div id="dialog-msg"></div>
-    <div id="dialog-btns"></div>
   </div>
-</div>
 
-<!-- MODAL: ADICIONAR ALUNO -->
-<div class="modal-bg" id="modal-add">
-  <div class="modal">
-    <div class="modal-head">
-      <h2>Adicionar aluno</h2>
-      <button class="modal-close" onclick="fecharModal('modal-add')">×</button>
-    </div>
-    <div class="fgroup"><label>Matrícula *</label><input id="add-mat" type="text" placeholder="000000" /></div>
-    <div class="fgroup"><label>Nome completo *</label><input id="add-nome" type="text" /></div>
-    <div class="fgroup"><label>Turma *</label><input id="add-turma" type="text" placeholder="1A, 2B..." /></div>
-    <div class="fgroup"><label>Menção</label><input id="add-mencao" type="text" placeholder="0.00" /></div>
-    <div class="fgroup">
-      <label>Trilha *</label>
-      <select id="add-tr">
-        <option value="TR1">TR1 — 1° Ano</option>
-        <option value="TR2">TR2 — 2° Ano</option>
-        <option value="TR3">TR3 — 3° Ano</option>
-      </select>
-    </div>
-    <div class="modal-footer">
-      <button class="btn" onclick="fecharModal('modal-add')">Cancelar</button>
-      <button class="btn success" onclick="salvarNovoAluno()">Salvar aluno</button>
-    </div>
-  </div>
-</div>
+  <script>
+    
+    // =====================================================================
+    // SIMULADOR DO GOOGLE.SCRIPT.RUN PARA GITHUB PAGES
+    // =====================================================================
+    const API_URL = "https://script.google.com/macros/s/AKfycbxzd3INSAp2DqE7BjjddzZVHz40CJOJ0GN0SHwcXLgK8b9mEM9sTfyAvA3En7joy104Uw/exec";
 
-<!-- MODAL: EDITAR ALUNO -->
-<div class="modal-bg" id="modal-edit">
-  <div class="modal">
-    <div class="modal-head">
-      <h2>Editar aluno</h2>
-      <button class="modal-close" onclick="fecharModal('modal-edit')">×</button>
-    </div>
-    <input type="hidden" id="edit-mat-antiga" />
-    <div class="fgroup"><label>Matrícula</label><input id="edit-mat" type="text" /></div>
-    <div class="fgroup"><label>Nome completo</label><input id="edit-nome" type="text" /></div>
-    <div class="fgroup"><label>Turma</label><input id="edit-turma" type="text" /></div>
-    <div class="fgroup"><label>Menção</label><input id="edit-mencao" type="text" /></div>
-    <div class="fgroup">
-      <label>Trilha</label>
-      <select id="edit-tr">
-        <option value="TR1">TR1 — 1° Ano</option>
-        <option value="TR2">TR2 — 2° Ano</option>
-        <option value="TR3">TR3 — 3° Ano</option>
-      </select>
-    </div>
-    <div class="modal-footer">
-      <button class="btn" onclick="fecharModal('modal-edit')">Cancelar</button>
-      <button class="btn primary" onclick="salvarEdicao()">Salvar</button>
-    </div>
-  </div>
-</div>
-
-<!-- MODAL: IMPORTAR XML -->
-<div class="modal-bg" id="modal-import">
-  <div class="modal">
-    <div class="modal-head">
-      <h2>Importar XML</h2>
-      <button class="modal-close" onclick="fecharModal('modal-import')">×</button>
-    </div>
-    <p style="font-size:13px;color:var(--ink3);margin-bottom:16px;">
-      Selecione o arquivo XML exportado do sistema escolar.
-    </p>
-    <div class="fgroup">
-      <input type="file" id="import-file" accept=".xml" />
-    </div>
-    <div id="import-status" style="font-size:13px;color:var(--ink3);margin-top:8px;"></div>
-    <div class="modal-footer">
-      <button class="btn" onclick="fecharModal('modal-import')">Cancelar</button>
-      <button class="btn primary" onclick="processarImportacao()">Importar</button>
-    </div>
-  </div>
-</div>
-
-<!-- MODAL: SORTEIO -->
-<div class="modal-bg" id="modal-sorteio">
-  <div class="modal">
-    <div class="modal-head">
-      <h2>Sorteio automático</h2>
-      <button class="modal-close" onclick="fecharModal('modal-sorteio')">×</button>
-    </div>
-    <p style="font-size:13px;color:var(--ink3);margin-bottom:16px;" id="sorteio-desc"></p>
-    <div class="modal-footer">
-      <button class="btn" onclick="fecharModal('modal-sorteio')">Cancelar</button>
-      <button class="btn primary" id="btn-sorteio-confirm" onclick="executarSorteio()">Sortear</button>
-    </div>
-  </div>
-</div>
-
-<script type="module">
-// ─────────────────────────────────────────────────────────────
-//  CONFIGURAÇÃO — substitua pela URL do seu Apps Script
-// ─────────────────────────────────────────────────────────────
-const GAS_URL = "https://script.google.com/macros/s/AKfycby5y6tA1mfqyw5PBa2kR2k_O1KStnV8z-cnGbqBW6SRcBvH4BpcqD_jgAuuClxyGCe8qw/exec";
-
-// ── API helpers ───────────────────────────────────────────────
-async function apiGet(action, params = {}) {
-  const url = new URL(GAS_URL);
-  url.searchParams.set("action", action);
-  for (const [k, v] of Object.entries(params)) {
-    url.searchParams.set(k, typeof v === "object" ? JSON.stringify(v) : v);
-  }
-  const r = await fetch(url.toString(), { redirect: "follow" });
-  return r.json();
-}
-
-async function apiPost(action, body = {}) {
-  const r = await fetch(GAS_URL, {
-    method: "POST",
-    headers: { "Content-Type": "text/plain" },
-    body: JSON.stringify({ action, ...body }),
-    redirect: "follow",
-  });
-  return r.json();
-}
-
-// ── Estado global ─────────────────────────────────────────────
-let DADOS = { alunos: [], cursos: [] };
-let TRILHA = null;       // null = todas
-let FILTRO = "todos";    // todos | matriculados | pendentes | transferidos
-let CURSO_SEL = null;    // filtro por card de vaga
-let SALVANDO = false;
-let AUTO_REFRESH = null;
-let DROPDOWN_ABERTO = null;
-
-// ── Expõe funções ao HTML (window.*) ─────────────────────────
-const exp = (name, fn) => { window[name] = fn; };
-
-// ── Init ──────────────────────────────────────────────────────
-async function init() {
-  await carregarDados();
-  iniciarAutoRefresh();
-}
-
-async function carregarDados() {
-  try {
-    document.getElementById("loading").style.display = "block";
-    document.getElementById("tabela-wrap").style.display = "none";
-    document.getElementById("error-msg").style.display = "none";
-
-    const dados = await apiGet("getDadosPainel", TRILHA ? { trilha: TRILHA } : {});
-    if (!dados || !dados.alunos) throw new Error("Dados inválidos recebidos.");
-
-    DADOS = dados;
-    document.getElementById("loading").style.display = "none";
-    document.getElementById("tabela-wrap").style.display = "block";
-
-    renderizarTudo();
-    if (!SALVANDO) mostrarToast();
-    document.getElementById("last-update").textContent =
-      "Atualizado " + new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
-  } catch (err) {
-    document.getElementById("loading").style.display = "none";
-    const e = document.getElementById("error-msg");
-    e.textContent = "Erro ao carregar: " + err.message;
-    e.style.display = "block";
-  }
-}
-
-function iniciarAutoRefresh() {
-  if (AUTO_REFRESH) clearInterval(AUTO_REFRESH);
-  AUTO_REFRESH = setInterval(() => { if (!SALVANDO) carregarDados(); }, 30000);
-}
-
-// ── Render ────────────────────────────────────────────────────
-function renderizarTudo() {
-  const alunos = alunosDaTrilha();
-  const cursos = cursosDaTrilha();
-
-  // Stats
-  const mat    = alunos.filter(isMatriculado).length;
-  const pend   = alunos.filter(isPendente).length;
-  const transf = alunos.filter(isTransferido).length;
-  const vagas  = cursos.reduce((s, c) => s + Math.max(0, 35 - (c.vagasOcupadas || 0)), 0);
-
-  document.getElementById("st-total").textContent  = alunos.length;
-  document.getElementById("st-mat").textContent    = mat;
-  document.getElementById("st-pend").textContent   = pend;
-  document.getElementById("st-transf").textContent = transf;
-  document.getElementById("st-vagas").textContent  = vagas;
-
-  renderMonitor(cursos);
-  renderTabela();
-}
-
-function renderMonitor(cursos) {
-  const mon = document.getElementById("monitor");
-  if (!cursos.length) { mon.innerHTML = '<span style="color:var(--ink3);font-size:13px">Nenhum curso</span>'; return; }
-  mon.innerHTML = cursos.map(c => {
-    const disp = Math.max(0, 35 - (c.vagasOcupadas || 0));
-    const cls  = CURSO_SEL === c.codigo ? "vaga-card sel" : disp <= 0 ? "vaga-card lotado" : "vaga-card";
-    return `<div class="${cls}" onclick="filtrarCurso('${c.codigo}')" title="${c.nome}\nTerça: ${c.profTerca||'N/D'}\nQuarta: ${c.profQuarta||'N/D'}">
-      <h4>${c.codigo}</h4>
-      <p>${c.nome}</p>
-      <div class="vaga-num">${disp}</div>
-      <div class="vaga-sub">disponíveis</div>
-    </div>`;
-  }).join("");
-}
-
-function renderTabela() {
-  const cursos = cursosDaTrilha();
-  let alunos = alunosDaTrilha();
-
-  if (FILTRO === "matriculados")  alunos = alunos.filter(isMatriculado);
-  if (FILTRO === "pendentes")     alunos = alunos.filter(isPendente);
-  if (FILTRO === "transferidos")  alunos = alunos.filter(isTransferido);
-  if (CURSO_SEL)                  alunos = alunos.filter(a => String(a[5]||"").trim() === CURSO_SEL);
-
-  const q = document.getElementById("busca").value.toLowerCase();
-  if (q) alunos = alunos.filter(a =>
-    String(a[1]||"").toLowerCase().includes(q) ||
-    String(a[0]||"").toLowerCase().includes(q)
-  );
-
-  document.getElementById("badge-total").textContent = `${alunos.length} aluno${alunos.length !== 1 ? "s" : ""}`;
-  document.getElementById("panel-sub").textContent =
-    TRILHA ? `${TRILHA}${CURSO_SEL ? ` › ${CURSO_SEL}` : ""}` : CURSO_SEL || "";
-
-  const tbody = document.getElementById("tbody");
-  const isMobile = window.innerWidth <= 640;
-
-  tbody.innerHTML = alunos.map(a => {
-    const [mat, nome, turma, mencao, rank, escolha, profTerca, profQuarta,, trilha] =
-      a.map(v => String(v === null || v === undefined ? "" : v));
-
-    const transf = turma.includes("TRANSF");
-    const cls    = transf ? "transf" : escolha ? "ok" : "";
-
-    const opcoesSelect = cursos.map(c => {
-      const sel = escolha === c.codigo ? "selected" : "";
-      const lot = (c.vagasOcupadas || 0) >= 35 && escolha !== c.codigo ? " [LOTADO]" : "";
-      return `<option value="${c.codigo}" ${sel}>${c.codigo} — ${c.nome}${lot}</option>`;
-    }).join("");
-
-    const selectHtml = `
-      <select class="curso-sel" id="sel-${mat}" onchange="preencherHorarios('${mat}')">
-        <option value="">— Selecionar curso —</option>
-        ${opcoesSelect}
-      </select>
-      ${escolha ? `<span class="nome-curso-tag" id="nome-${mat}">${cursos.find(c=>c.codigo===escolha)?.nome||""}</span>` : `<span id="nome-${mat}"></span>`}
-      <div class="prof-row">
-        <span class="prof-tag">Terça: <strong id="terca-${mat}">${profTerca||"—"}</strong></span>
-        <span class="prof-tag">Quarta: <strong id="quarta-${mat}">${profQuarta||"—"}</strong></span>
-      </div>`;
-
-    const statusPill = transf
-      ? `<span class="pill transf">Transferido</span>`
-      : escolha ? `<span class="pill ok">Matriculado</span>` : `<span class="pill pend">Pendente</span>`;
-
-    const btnTransf = transf
-      ? `<button class="act undo" onclick="desfazerTransf('${mat}')">↩ Desfazer</button>`
-      : `<button class="act transf" onclick="transferir('${mat}')">Transferir</button>`;
-
-    const acoesMobile = `
-      <div class="mobile-menu-wrap mobile-only">
-        <button class="mobile-menu-btn" onclick="toggleDropdown('dd-${mat}')">⋮</button>
-        <div class="mobile-dropdown" id="dd-${mat}">
-          <button onclick="salvar('${mat}');fecharDropdown()">💾 Salvar</button>
-          <button onclick="limpar('${mat}');fecharDropdown()">🧹 Limpar</button>
-          <button onclick="abrirEditar('${mat}');fecharDropdown()">✏️ Editar</button>
-          ${transf
-            ? `<button onclick="desfazerTransf('${mat}');fecharDropdown()">↩ Desfazer transf.</button>`
-            : `<button onclick="transferir('${mat}');fecharDropdown()">📤 Transferir</button>`
+    function createGoogleScriptRunMock(onSuccess, onFailure) {
+      const execute = (action, args) => {
+        fetch(API_URL, {
+          method: 'POST',
+          // ATENÇÃO: NÃO colocamos headers de application/json aqui propositalmente
+          // Isso evita que o navegador trave a requisição por erro de CORS (Preflight OPTIONS)
+          body: JSON.stringify({ action: action, args: args })
+        })
+        .then(response => response.json())
+        .then(data => {
+          if (data && data.erro && onFailure) {
+            onFailure(new Error(data.erro));
+          } else if (onSuccess) {
+            onSuccess(data);
           }
-          <button onclick="excluir('${mat}');fecharDropdown()" style="color:var(--red)">🗑 Excluir</button>
-        </div>
-      </div>`;
+        })
+        .catch(error => {
+          console.error("Erro de conexão com o Apps Script:", error);
+          if (onFailure) onFailure(error);
+        });
+      };
 
-    const acoesDesktop = `
-      <div class="actions desktop-only">
-        <button class="act save"  onclick="salvar('${mat}')">Salvar</button>
-        <button class="act clear" onclick="limpar('${mat}')">Limpar</button>
-        <button class="act edit"  onclick="abrirEditar('${mat}')">Editar</button>
-        ${btnTransf}
-        <button class="act del"   onclick="excluir('${mat}')">Excluir</button>
-      </div>`;
-
-    return `<tr class="${cls}">
-      <td><span class="pill rank">${rank||"—"}</span></td>
-      <td class="desktop-only"><span class="pill mat">${mat}</span></td>
-      <td><div class="nome-cell"><strong>${nome}</strong><small>${trilha||detectarTR(a)}</small></div></td>
-      <td><span class="pill turma">${turma}</span></td>
-      <td class="desktop-only">${mencao ? `<span class="pill" style="background:var(--bg);color:var(--ink2)">${parseFloat(mencao.replace(",",".")).toFixed(2).replace(".",",")}</span>` : "—"}</td>
-      <td>${selectHtml}</td>
-      <td class="desktop-only">${statusPill}</td>
-      <td>${acoesDesktop}${acoesMobile}</td>
-    </tr>`;
-  }).join("");
-}
-
-// ── Helpers de filtragem ──────────────────────────────────────
-function alunosDaTrilha() {
-  if (!TRILHA) return DADOS.alunos;
-  return DADOS.alunos.filter(a => detectarTR(a) === TRILHA);
-}
-function cursosDaTrilha() {
-  if (!TRILHA) return DADOS.cursos;
-  return DADOS.cursos.filter(c => String(c.tr||"").toUpperCase() === TRILHA);
-}
-function detectarTR(a) {
-  const tr = String(a[8]||"").trim().toUpperCase();
-  if (["TR1","TR2","TR3"].includes(tr)) return tr;
-  const turma = String(a[2]||"").toUpperCase();
-  if (/^1[A-Z]/.test(turma) || turma.includes("TR1")) return "TR1";
-  if (/^2[A-Z]/.test(turma) || turma.includes("TR2")) return "TR2";
-  if (/^3[A-Z]/.test(turma) || turma.includes("TR3")) return "TR3";
-  return "";
-}
-function isMatriculado(a) { return !isTransferido(a) && String(a[5]||"").trim() !== ""; }
-function isPendente(a)    { return !isTransferido(a) && String(a[5]||"").trim() === ""; }
-function isTransferido(a) { return String(a[2]||"").toUpperCase().includes("TRANSF"); }
-
-// ── Ações sobre alunos ────────────────────────────────────────
-async function salvar(mat) {
-  const sel = document.getElementById("sel-" + mat);
-  if (!sel || !sel.value) { dialog("⚠️ Selecione um curso antes de salvar."); return; }
-  SALVANDO = true;
-  try {
-    const res = await apiPost("processarMatricula", { matricula: mat, codigoCurso: sel.value, forcar: false });
-    if (res.confirmacao) {
-      dialog(res.msg, "confirm", async ok => {
-        if (!ok) return;
-        const r2 = await apiPost("processarMatricula", { matricula: mat, codigoCurso: sel.value, forcar: true });
-        if (r2.sucesso) await carregarDados(); else dialog("❌ " + r2.erro);
-      });
-    } else if (res.sucesso) {
-      await carregarDados();
-    } else {
-      dialog("❌ " + (res.erro || "Erro desconhecido"));
+      return {
+        withSuccessHandler: function(cb) { return createGoogleScriptRunMock(cb, onFailure); },
+        withFailureHandler: function(cb) { return createGoogleScriptRunMock(onSuccess, cb); },
+        // Mapeamento automático de todas as suas funções do backend
+        getDadosPainel: (t) => execute('getDadosPainel', [t]),
+        processarMatricula: (m, c, f) => execute('processarMatricula', [m, c, f]),
+        adicionarAluno: (d) => execute('adicionarAluno', [d]),
+        marcarTransferido: (m) => execute('marcarTransferido', [m]),
+        desfazerTransferido: (m) => execute('desfazerTransferido', [m]),
+        limparMatricula: (m) => execute('limparMatricula', [m]),
+        editarAluno: (d) => execute('editarAluno', [d]),
+        excluirAluno: (m) => execute('excluirAluno', [m]),
+        obterProfessoresDaBase: () => execute('obterProfessoresDaBase', []),
+        gerarDadosListaTurma: (s) => execute('gerarDadosListaTurma', [s]),
+        gerarDadosListaProfessor: (s) => execute('gerarDadosListaProfessor', [s]),
+        gerarPDFTurma: (t) => execute('gerarPDFTurma', [t]),
+        gerarPDFProfessor: (p) => execute('gerarPDFProfessor', [p]),
+        processarImportacaoXML: (xml, nome) => execute('processarImportacaoXML', [xml, nome]),
+        exportarAlunos2026CSV: (sep) => execute('exportarAlunos2026CSV', [sep]),
+        getResumoPendenciasImportacao: () => execute('getResumoPendenciasImportacao', []),
+        confirmarTransferidos: (m) => execute('confirmarTransferidos', [m]),
+        confirmarTodosTransferidos: () => execute('confirmarTodosTransferidos', [])
+      };
     }
-  } catch (err) { dialog("❌ " + err.message); }
-  finally { SALVANDO = false; }
-}
 
-async function limpar(mat) {
-  dialog("Limpar matrícula de curso do aluno " + mat + "?", "confirm", async ok => {
-    if (!ok) return;
-    SALVANDO = true;
-    try {
-      const res = await apiPost("limparMatricula", { matricula: mat });
-      if (res.sucesso) await carregarDados(); else dialog("❌ " + res.erro);
-    } catch(e) { dialog("❌ " + e.message); }
-    finally { SALVANDO = false; }
-  });
-}
+    // Se estiver fora do Google, injeta o simulador
+    if (typeof google === 'undefined' || !google.script) {
+      window.google = { script: { run: createGoogleScriptRunMock(null, null) } };
+    }
+    // =====================================================================
 
-async function excluir(mat) {
-  dialog("❗ Excluir permanentemente o aluno " + mat + "?", "confirm", async ok => {
-    if (!ok) return;
-    SALVANDO = true;
-    try {
-      const res = await apiPost("excluirAluno", { matricula: mat });
-      if (res.sucesso) await carregarDados(); else dialog("❌ " + res.erro);
-    } catch(e) { dialog("❌ " + e.message); }
-    finally { SALVANDO = false; }
-  });
-}
+    // SEU CÓDIGO ORIGINAL CONTINUA INTACTO A PARTIR DAQUI:
+      
+    let DADOS = { alunos: [], cursos: [] };
+    let TRILHA_ATUAL = null;
+    let CURSO_FILTRO = null;
+    let FILTRO_RAPIDO = 'todos';
+    let INTERVALO_ATUALIZACAO = null;
+    let SALVANDO = false;
+    let ACAO_PENDENTE_MOBILE = {};
 
-async function transferir(mat) {
-  dialog("Marcar aluno " + mat + " como transferido?", "confirm", async ok => {
-    if (!ok) return;
-    SALVANDO = true;
-    try {
-      const res = await apiPost("marcarTransferido", { matricula: mat });
-      if (res.sucesso) await carregarDados(); else dialog("❌ " + res.erro);
-    } catch(e) { dialog("❌ " + e.message); }
-    finally { SALVANDO = false; }
-  });
-}
+    function mostrarDialog(mensagem, tipo = 'info', callback = null, titulo = null) {
+      const dialog = document.getElementById('customDialog');
+      const messageDiv = document.getElementById('dialogMessage');
+      const buttonsDiv = document.getElementById('dialogButtons');
+      
+      // Se tem título customizado, adiciona
+      if (titulo) {
+        messageDiv.innerHTML = `<h3 style="margin-top: 0; color: #1a73e8; text-align: center;">${titulo}</h3>${mensagem}`;
+      } else {
+        // Verifica se é HTML ou texto
+        if (mensagem.includes('<')) {
+          messageDiv.innerHTML = mensagem;
+        } else {
+          messageDiv.textContent = mensagem;
+        }
+      }
+      
+      buttonsDiv.innerHTML = '';
+      
+      if (tipo === 'confirm') {
+        const btnConfirm = document.createElement('button');
+        btnConfirm.className = 'dialog-btn dialog-btn-confirm';
+        btnConfirm.textContent = titulo ? 'Confirmar e Gerar PDF' : 'OK';
+        btnConfirm.onclick = () => {
+          dialog.classList.remove('show');
+          if (callback) callback(true);
+        };
+        
+        const btnCancel = document.createElement('button');
+        btnCancel.className = 'dialog-btn dialog-btn-cancel';
+        btnCancel.textContent = 'Cancelar';
+        btnCancel.onclick = () => {
+          dialog.classList.remove('show');
+          if (callback) callback(false);
+        };
+        
+        buttonsDiv.appendChild(btnConfirm);
+        buttonsDiv.appendChild(btnCancel);
+      } else {
+        const btnOk = document.createElement('button');
+        btnOk.className = 'dialog-btn dialog-btn-ok';
+        btnOk.textContent = 'OK';
+        btnOk.onclick = () => {
+          dialog.classList.remove('show');
+          if (callback) callback();
+        };
+        buttonsDiv.appendChild(btnOk);
+      }
+      
+      dialog.classList.add('show');
+    }
 
-async function desfazerTransf(mat) {
-  SALVANDO = true;
-  try {
-    const res = await apiPost("desfazerTransferido", { matricula: mat });
-    if (res.sucesso) await carregarDados(); else dialog("❌ " + res.erro);
-  } catch(e) { dialog("❌ " + e.message); }
-  finally { SALVANDO = false; }
-}
+    function abrirModal() {
+      document.getElementById('modalAddAluno').style.display = 'block';
+      document.getElementById('formAddAluno').reset();
+      if (TRILHA_ATUAL) {
+        document.getElementById('inputTR').value = TRILHA_ATUAL;
+      }
+    }
 
-function preencherHorarios(mat) {
-  const sel = document.getElementById("sel-" + mat);
-  const cod = sel?.value;
-  const curso = DADOS.cursos.find(c => c.codigo === cod);
-  document.getElementById("terca-" + mat).textContent  = curso?.profTerca  || "—";
-  document.getElementById("quarta-" + mat).textContent = curso?.profQuarta || "—";
-  const nomeEl = document.getElementById("nome-" + mat);
-  if (nomeEl) nomeEl.textContent = cod && curso ? curso.nome : "";
-}
+    function fecharModal() {
+      document.getElementById('modalAddAluno').style.display = 'none';
+    }
 
-// ── Adicionar aluno ───────────────────────────────────────────
-async function salvarNovoAluno() {
-  const dadosAluno = {
-    matricula: document.getElementById("add-mat").value.trim(),
-    nome:      document.getElementById("add-nome").value.trim(),
-    turma:     document.getElementById("add-turma").value.trim(),
-    mencao:    document.getElementById("add-mencao").value.trim(),
-    ranking:   "",
-    tr:        document.getElementById("add-tr").value,
-  };
-  if (!dadosAluno.matricula || !dadosAluno.nome || !dadosAluno.turma) {
-    dialog("❌ Preencha matrícula, nome e turma."); return;
-  }
-  SALVANDO = true;
-  try {
-    const res = await apiPost("adicionarAluno", { dadosAluno });
-    if (res.sucesso) {
-      fecharModal("modal-add");
-      document.getElementById("add-mat").value = document.getElementById("add-nome").value =
-      document.getElementById("add-turma").value = document.getElementById("add-mencao").value = "";
-      dialog("✅ " + res.mensagem, "info", () => carregarDados());
-    } else { dialog("❌ " + res.erro); }
-  } catch(e) { dialog("❌ " + e.message); }
-  finally { SALVANDO = false; }
-}
+    function abrirModalSorteio() {
+      const alunosSemEscolha = getAlunosBaseTrilha().filter(a => (!a[5] || a[5] === "") && !alunoTransferido(a));
+      const cursosComVagas = getCursosBaseTrilha().filter(c => Number(c.vagasOcupadas || 0) < 35);
+      
+      if (alunosSemEscolha.length === 0) {
+        mostrarDialog("ℹ️ Todos os alunos já possuem um curso selecionado!");
+        return;
+      }
+      
+      if (cursosComVagas.length === 0) {
+        mostrarDialog("⚠️ Não há cursos com vagas disponíveis!");
+        return;
+      }
+      
+      const statsDiv = document.getElementById('sorteioStats');
+      statsDiv.innerHTML = `
+        <div>👥 Alunos sem curso: <strong>${alunosSemEscolha.length}</strong></div>
+        <div>📚 Cursos com vagas: <strong>${cursosComVagas.length}</strong></div>
+        <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #1a73e8;">
+          <strong>Cursos disponíveis:</strong><br>
+          ${cursosComVagas.map(c => `${c.codigo} (${c.vagasOcupadas}/35)`).join(', ')}
+        </div>
+      `;
+      
+      document.getElementById('modalSorteio').style.display = 'block';
+    }
 
-// ── Editar aluno ──────────────────────────────────────────────
-function abrirEditar(mat) {
-  const aluno = DADOS.alunos.find(a => String(a[0]).trim() === String(mat).trim());
-  if (!aluno) { dialog("Aluno não encontrado."); return; }
-  document.getElementById("edit-mat-antiga").value = aluno[0];
-  document.getElementById("edit-mat").value         = aluno[0];
-  document.getElementById("edit-nome").value        = aluno[1];
-  document.getElementById("edit-turma").value       = aluno[2];
-  document.getElementById("edit-mencao").value      = aluno[3];
-  document.getElementById("edit-tr").value          = detectarTR(aluno) || "TR1";
-  abrirModal("modal-edit");
-}
+    function fecharModalSorteio() {
+      document.getElementById('modalSorteio').style.display = 'none';
+    }
 
-async function salvarEdicao() {
-  const dadosEdicao = {
-    matriculaAntiga: document.getElementById("edit-mat-antiga").value,
-    matricula:       document.getElementById("edit-mat").value.trim(),
-    nome:            document.getElementById("edit-nome").value.trim(),
-    turma:           document.getElementById("edit-turma").value.trim(),
-    mencao:          document.getElementById("edit-mencao").value.trim(),
-    tr:              document.getElementById("edit-tr").value,
-  };
-  SALVANDO = true;
-  try {
-    const res = await apiPost("editarAluno", { dadosEdicao });
-    if (res.sucesso) {
-      fecharModal("modal-edit");
-      await carregarDados();
-    } else { dialog("❌ " + res.erro); }
-  } catch(e) { dialog("❌ " + e.message); }
-  finally { SALVANDO = false; }
-}
+    function confirmarSorteio() {
+      const alunosSemEscolha = getAlunosBaseTrilha().filter(a => (!a[5] || a[5] === "") && !alunoTransferido(a));
+      const cursosComVagas = getCursosBaseTrilha().filter(c => Number(c.vagasOcupadas || 0) < 35);
+      
+      if (alunosSemEscolha.length === 0 || cursosComVagas.length === 0) {
+        mostrarDialog("❌ Não é possível realizar o sorteio!");
+        return;
+      }
+      
+      const btnConfirmar = document.getElementById('btnConfirmarSorteio');
+      btnConfirmar.disabled = true;
+      btnConfirmar.textContent = '⏳ Sorteando...';
+      
+      // Função para sortear com peso (prioriza turmas com menos alunos)
+      function sortearCursoComPeso(cursosDisponiveis) {
+        // Separar em níveis de prioridade
+        const prioridade1 = cursosDisponiveis.filter(c => c.vagasOcupadas < 10);  // Alta prioridade
+        const prioridade2 = cursosDisponiveis.filter(c => c.vagasOcupadas >= 10 && c.vagasOcupadas < 20);
+        const prioridade3 = cursosDisponiveis.filter(c => c.vagasOcupadas >= 20 && c.vagasOcupadas < 30);
+        const prioridade4 = cursosDisponiveis.filter(c => c.vagasOcupadas >= 30);
+        
+        // Pesos: quanto menor a turma, maior o peso
+        let pool = [];
+        prioridade1.forEach(c => {
+          for (let i = 0; i < 10; i++) pool.push(c); // 10x mais chance
+        });
+        prioridade2.forEach(c => {
+          for (let i = 0; i < 5; i++) pool.push(c); // 5x mais chance
+        });
+        prioridade3.forEach(c => {
+          for (let i = 0; i < 2; i++) pool.push(c); // 2x mais chance
+        });
+        prioridade4.forEach(c => pool.push(c)); // 1x chance
+        
+        return pool[Math.floor(Math.random() * pool.length)];
+      }
+      
+      let sorteados = 0;
+      let processados = 0;
+      const total = alunosSemEscolha.length;
+      
+      alunosSemEscolha.forEach((aluno, index) => {
+        const matricula = aluno[0];
+        const cursosDisponiveis = getCursosBaseTrilha().filter(c => Number(c.vagasOcupadas || 0) < 35);
+        
+        if (cursosDisponiveis.length > 0) {
+          const cursoSorteado = sortearCursoComPeso(cursosDisponiveis);
+          
+          const selectElement = document.getElementById(`sel-${matricula}`);
+          if (selectElement) {
+            selectElement.value = cursoSorteado.codigo;
+            preencherHorarios(matricula);
+            
+            // Incrementa vagas ocupadas localmente para próximos sorteios
+            const curso = DADOS.cursos.find(c => c.codigo === cursoSorteado.codigo);
+            if (curso) curso.vagasOcupadas++;
+            
+            setTimeout(() => {
+              google.script.run
+                .withSuccessHandler(res => {
+                  if (res.sucesso) sorteados++;
+                  processados++;
+                  
+                  // Mostra mensagem única no final
+                  if (processados === total) {
+                    btnConfirmar.disabled = false;
+                    btnConfirmar.textContent = 'Confirmar Sorteio';
+                    fecharModalSorteio();
+                    mostrarDialog(`✅ ${sorteados} aluno(s) sorteado(s) com sucesso!`, 'info', () => {
+                      recarregarDados();
+                    });
+                  }
+                })
+                .withFailureHandler(() => {
+                  processados++;
+                  if (processados === total) {
+                    btnConfirmar.disabled = false;
+                    btnConfirmar.textContent = 'Confirmar Sorteio';
+                    fecharModalSorteio();
+                    mostrarDialog(`✅ ${sorteados} de ${total} aluno(s) sorteado(s) com sucesso!`, 'info', () => {
+                      recarregarDados();
+                    });
+                  }
+                })
+                .processarMatricula(matricula, cursoSorteado.codigo, false);
+            }, 300 * index); // Delay entre requisições
+          }
+        }
+      });
+    }
 
-// ── Importar XML ──────────────────────────────────────────────
-async function processarImportacao() {
-  const file = document.getElementById("import-file").files[0];
-  if (!file) { dialog("❌ Selecione um arquivo XML."); return; }
-  if (!file.name.endsWith(".xml")) { dialog("❌ O arquivo deve ser .xml"); return; }
+    window.onclick = function(event) {
+      const modal1 = document.getElementById('modalAddAluno');
+      const modal2 = document.getElementById('modalSorteio');
+      if (event.target == modal1) {
+        fecharModal();
+      }
+      if (event.target == modal2) {
+        fecharModalSorteio();
+      }
+    }
 
-  const status = document.getElementById("import-status");
-  status.textContent = "⏳ Lendo arquivo...";
+    document.getElementById('formAddAluno').onsubmit = function(e) {
+      e.preventDefault();
+      salvarNovoAluno();
+    };
 
-  const reader = new FileReader();
-  reader.onload = async e => {
-    status.textContent = "⏳ Enviando para o servidor...";
-    try {
-      const res = await apiPost("processarImportacaoXML", { xmlText: e.target.result, nome: file.name });
-      fecharModal("modal-import");
-      if (res.erro) { dialog("❌ " + res.erro); return; }
-      const msg = `✅ Importação concluída!<br><br>
-        📦 Total lido: <strong>${res.totalAlunos2026||0}</strong><br>
-        🆕 Novos inseridos: <strong>${res.novos||0}</strong><br>
-        📤 Possíveis transferidos: <strong>${res.transferidos||0}</strong>`;
-      if ((res.transferidos||0) > 0) {
-        dialog(msg + "<br><br>Deseja abrir o painel de transferidos?", "confirm", ok => {
-          if (ok) abrirTransferidos(); else carregarDados();
+    document.getElementById('btnConfirmarSorteio').onclick = function() {
+      confirmarSorteio();
+    };
+
+    function salvarNovoAluno() {
+      const dadosAluno = {
+        matricula: document.getElementById('inputMatricula').value.trim(),
+        nome: document.getElementById('inputNome').value.trim(),
+        turma: document.getElementById('inputTurma').value.trim(),
+        mencao: document.getElementById('inputMencao').value.trim(),
+        ranking: document.getElementById('inputRanking').value.trim(),
+        tr: document.getElementById('inputTR').value
+      };
+
+      const btnSalvar = document.getElementById('btnSalvarAluno');
+      btnSalvar.disabled = true;
+      btnSalvar.textContent = '⏳ Salvando...';
+
+      google.script.run
+        .withSuccessHandler(res => {
+          btnSalvar.disabled = false;
+          btnSalvar.textContent = 'Salvar';
+          
+          if (res.erro) {
+            mostrarDialog('❌ ' + res.erro);
+          } else if (res.sucesso) {
+            mostrarDialog('✅ ' + res.mensagem, 'info', () => {
+              fecharModal();
+              recarregarDados();
+            });
+          }
+        })
+        .withFailureHandler(err => {
+          btnSalvar.disabled = false;
+          btnSalvar.textContent = 'Salvar';
+          mostrarDialog('❌ Erro ao adicionar: ' + err.message);
+        })
+        .adicionarAluno(dadosAluno);
+    }
+
+    // ===== FUNÇÕES MOBILE =====
+    function toggleMobileMenu() {
+      const menu = document.getElementById('mobileMenu');
+      menu.classList.toggle('show');
+    }
+    
+    function setupMobileDetection() {
+
+      document.addEventListener('click', function(e) {
+        if (!e.target.closest('.action-menu')) {
+          document.querySelectorAll('.mobile-action-list').forEach(el => el.classList.remove('open'));
+        }
+      });
+
+      document.addEventListener('click', function(e) {
+        const sb = document.getElementById('sidebar');
+        const btn = document.querySelector('.topbar-toggle');
+        if (window.innerWidth <= 920 && sb && btn && !sb.contains(e.target) && !btn.contains(e.target)) {
+          sb.classList.remove('mobile-open');
+        }
+      });
+      window.addEventListener('resize', function() {
+        if (window.innerWidth > 920) document.getElementById('sidebar').classList.remove('mobile-open');
+      });
+    }
+
+
+    function limparFiltroRapido() {
+      FILTRO_RAPIDO = 'todos';
+      CURSO_FILTRO = null;
+      atualizarDestaqueFiltro('todos');
+      atualizarTela();
+    }
+
+    function filtrarPainelRapido(tipo) {
+      FILTRO_RAPIDO = tipo || 'todos';
+      CURSO_FILTRO = null;
+      atualizarDestaqueFiltro(tipo);
+      atualizarTela();
+    }
+
+    // Gerencia o destaque visual dos stat-cards
+    function atualizarDestaqueFiltro(tipo) {
+      const mapa = {
+        'todos':         'cardTotal',
+        'matriculados':  'cardMatriculados',
+        'naoEnturmados': 'cardNaoEnturmados',
+        'transferidos':  'cardTransferidos',
+        'disponiveis':   'cardVagas'
+      };
+      // Remove destaque de todos
+      document.querySelectorAll('.stat-card').forEach(c => c.classList.remove('filtro-ativo'));
+      // Adiciona no correto
+      const alvo = mapa[tipo];
+      if (alvo) {
+        const el = document.getElementById(alvo);
+        if (el) el.closest('.stat-card').classList.add('filtro-ativo');
+      }
+    }
+
+    function formatarMencaoTela(valor) {
+      const txt = String(valor == null ? '' : valor).trim().replace(',', '.');
+      const num = parseFloat(txt);
+      return isNaN(num) ? String(valor || '') : num.toFixed(2).replace('.', ',');
+    }
+
+    function detectarTrilhaAluno(aluno) {
+      const trDireta = String((aluno && aluno[8]) || '').trim().toUpperCase();
+      if (['TR1','TR2','TR3'].includes(trDireta)) return trDireta;
+
+      const fontes = [
+        String((aluno && aluno[2]) || '').toUpperCase(),
+        String((aluno && aluno[5]) || '').toUpperCase()
+      ];
+
+      for (const txt of fontes) {
+        if (txt.includes('TR1')) return 'TR1';
+        if (txt.includes('TR2')) return 'TR2';
+        if (txt.includes('TR3')) return 'TR3';
+        if (/\b1[A-Z]\b/.test(txt) || /^1[A-Z]/.test(txt)) return 'TR1';
+        if (/\b2[A-Z]\b/.test(txt) || /^2[A-Z]/.test(txt)) return 'TR2';
+        if (/\b3[A-Z]\b/.test(txt) || /^3[A-Z]/.test(txt)) return 'TR3';
+      }
+      return '';
+    }
+
+    function detectarTrilhaCurso(curso) {
+      const trDireta = String((curso && curso.tr) || '').trim().toUpperCase();
+      if (['TR1','TR2','TR3'].includes(trDireta)) return trDireta;
+
+      const txt = String((curso && curso.codigo) || '').toUpperCase();
+      if (txt.includes('TR1')) return 'TR1';
+      if (txt.includes('TR2')) return 'TR2';
+      if (txt.includes('TR3')) return 'TR3';
+      return '';
+    }
+
+    function getAlunosBaseTrilha() {
+      const todos = Array.isArray(DADOS.alunos) ? DADOS.alunos : [];
+      if (!TRILHA_ATUAL) return [...todos];
+      return todos.filter(a => detectarTrilhaAluno(a) === TRILHA_ATUAL);
+    }
+
+    function getCursosBaseTrilha() {
+      const todos = Array.isArray(DADOS.cursos) ? DADOS.cursos : [];
+      if (!TRILHA_ATUAL) return [...todos];
+      return todos.filter(c => detectarTrilhaCurso(c) === TRILHA_ATUAL);
+    }
+
+    function alunoTransferido(aluno) {
+      return String((aluno && aluno[2]) || '').toUpperCase().includes('TRANSF');
+    }
+
+    function alunoSemCurso(aluno) {
+      return String((aluno && aluno[5]) || '').trim() === '';
+    }
+
+    function alunoAtivoMatriculado(aluno) {
+      return !alunoTransferido(aluno) && !alunoSemCurso(aluno);
+    }
+
+
+    function isMobileTabela() {
+      return window.innerWidth <= 640;
+    }
+
+    function toggleMobileActions(matricula) {
+      const menu = document.getElementById('mobile-actions-' + matricula);
+      if (!menu) return;
+      document.querySelectorAll('.mobile-action-list').forEach(el => {
+        if (el !== menu) el.classList.remove('open');
+      });
+      menu.classList.toggle('open');
+    }
+
+    function escolherAcaoMobile(matricula, acao) {
+      ACAO_PENDENTE_MOBILE[matricula] = acao;
+      const btn = document.getElementById('mobile-trigger-' + matricula);
+      const menu = document.getElementById('mobile-actions-' + matricula);
+      if (btn) {
+        btn.className = 'icon-btn mobile-action-trigger bg-blue icon-save';
+        btn.title = 'Confirmar ação';
+      }
+      if (menu) menu.classList.remove('open');
+    }
+
+    function executarAcaoMobile(matricula) {
+      const acao = ACAO_PENDENTE_MOBILE[matricula];
+      if (!acao) {
+        toggleMobileActions(matricula);
+        return;
+      }
+      delete ACAO_PENDENTE_MOBILE[matricula];
+      const btn = document.getElementById('mobile-trigger-' + matricula);
+      if (btn) {
+        btn.className = 'icon-btn mobile-action-trigger bg-slate icon-more';
+        btn.title = 'Ações';
+      }
+      if (acao === 'salvar') salvar(matricula);
+      else if (acao === 'limpar') limpar(matricula);
+      else if (acao === 'editar') abrirModalEditar(matricula);
+      else if (acao === 'transf') transf(matricula);
+      else if (acao === 'excluir') excluir(matricula);
+    }
+
+    function abrirModalGerenciarCursos() {
+      const modal = document.getElementById('modalGerenciarCursos');
+      if (modal) modal.style.display = 'block';
+    }
+
+    function fecharModalGerenciarCursos() {
+      const modal = document.getElementById('modalGerenciarCursos');
+      if (modal) modal.style.display = 'none';
+    }
+
+
+    function filtrarPorCurso(codigoCurso) {
+      if (CURSO_FILTRO === codigoCurso) {
+        // Se clicar no mesmo, volta para a trilha completa
+        CURSO_FILTRO = null;
+      } else {
+        CURSO_FILTRO = codigoCurso;
+      }
+      atualizarTela();
+    }
+
+    function selecionarTrilha(trilha) {
+      console.log('Trilha selecionada:', trilha || 'TODAS');
+      
+      // Resetar filtros ao mudar trilha — resolve o bug de cards não funcionarem após navegar
+      CURSO_FILTRO = null;
+      FILTRO_RAPIDO = 'todos';
+      atualizarDestaqueFiltro('todos');
+      
+      document.querySelectorAll('.trilha-btn').forEach(btn => btn.classList.remove('active'));
+      // Sidebar: ativa o botão correto
+      const btnAtivo = document.getElementById(trilha ? 'btn' + trilha : 'btnTODAS');
+      if (btnAtivo) btnAtivo.classList.add('active');
+      TRILHA_ATUAL = trilha;
+      
+      document.getElementById("loading").innerHTML = trilha ? `🔄 Carregando ${trilha}...` : '🔄 Carregando todos os dados...';
+      document.getElementById("loading").style.display = "block";
+      document.getElementById("error").style.display = "none";
+      document.getElementById("tabelaContainer").style.display = "none";
+      
+      google.script.run
+        .withSuccessHandler(iniciar)
+        .withFailureHandler(function(erro) {
+          console.warn('Erro, tentando novamente em 3s...');
+          setTimeout(function() {
+            google.script.run.withSuccessHandler(iniciar).withFailureHandler(mostrarErro).getDadosPainel(null);
+          }, 3000);
+        })
+        .getDadosPainel(null);
+      
+      iniciarAtualizacaoAutomatica();
+    }
+
+    function iniciar(dadosRecebidos) {
+      console.log('Dados recebidos:', dadosRecebidos);
+      
+      if (!dadosRecebidos || !dadosRecebidos.alunos || !dadosRecebidos.cursos) {
+        mostrarErro({ message: 'Dados inválidos recebidos da planilha' });
+        return;
+      }
+      
+      DADOS = dadosRecebidos;
+      document.getElementById("loading").style.display = "none";
+      document.getElementById("error").style.display = "none";
+      document.getElementById("tabelaContainer").style.display = "block";
+      
+      console.log(`${DADOS.alunos.length} alunos e ${DADOS.cursos.length} cursos carregados para ${TRILHA_ATUAL}`);
+      atualizarTela();
+      
+      if (!SALVANDO) {
+        mostrarBadgeAtualizacao();
+      }
+    }
+
+    function mostrarErro(erro) {
+      console.error('Erro:', erro);
+      document.getElementById("loading").style.display = "none";
+      const errorDiv = document.getElementById("error");
+      errorDiv.innerHTML = `<strong>❌ Erro:</strong> ${erro.message || erro}`;
+      errorDiv.style.display = "block";
+    }
+
+    
+
+function atualizarTela() {
+      const cursosBase = getCursosBaseTrilha();
+      const alunosBase = getAlunosBaseTrilha();
+
+      const totalText = TRILHA_ATUAL
+        ? `${cursosBase.length} curso(s) — ${TRILHA_ATUAL}${CURSO_FILTRO ? ` — ${CURSO_FILTRO}` : ''}`
+        : `${cursosBase.length} curso(s) no total`;
+      document.getElementById("totalCursos").innerHTML = totalText;
+
+      const total = alunosBase.length;
+      const matriculados = alunosBase.filter(alunoAtivoMatriculado).length;
+      const naoEnturmados = alunosBase.filter(a => alunoSemCurso(a) && !alunoTransferido(a)).length;
+      const transferidos = alunosBase.filter(alunoTransferido).length;
+      const vagasDisponiveisTotal = cursosBase.reduce((acc, c) => acc + Math.max(0, 35 - Number(c.vagasOcupadas || 0)), 0);
+
+      document.getElementById('cardTotal').textContent = total;
+      document.getElementById('cardMatriculados').textContent = matriculados;
+      document.getElementById('cardNaoEnturmados').textContent = naoEnturmados;
+      document.getElementById('cardTransferidos').textContent = transferidos;
+      document.getElementById('cardVagas').textContent = vagasDisponiveisTotal;
+
+      const divMonitor = document.getElementById("monitor");
+      divMonitor.innerHTML = "";
+
+      if (cursosBase.length === 0) {
+        const titulo = TRILHA_ATUAL ? `Nenhum curso em ${TRILHA_ATUAL}` : 'Nenhum curso disponível';
+        divMonitor.innerHTML = `<div class="card lotado" style="min-width:260px;"><h4>${titulo}</h4><p>Não há cursos disponíveis para exibir.</p><div class="vagas">0</div><div style="font-size:11px;color:#64748b;">disponíveis</div></div>`;
+      } else {
+        cursosBase.forEach(c => {
+          let card = document.createElement("div");
+          const isSelected = CURSO_FILTRO === c.codigo;
+          const ocupadas = Number(c.vagasOcupadas || 0);
+          const disponiveis = Math.max(0, 35 - ocupadas);
+          card.className = isSelected ? "card selected" : (disponiveis <= 0 ? "card lotado" : "card");
+          card.style.cursor = "pointer";
+          card.title = `Clique para filtrar\n${c.codigo}\n${c.nome}\nTerça: ${c.profTerca || 'N/D'}\nQuarta: ${c.profQuarta || 'N/D'}`;
+          card.onclick = () => filtrarPorCurso(c.codigo);
+          card.innerHTML = `<h4 title="${c.nome}">${c.codigo}</h4><p>${c.nome}</p><div class="vagas">${disponiveis}</div><div style="font-size:11px;color:#64748b;">disponíveis</div>`;
+          divMonitor.appendChild(card);
+        });
+      }
+
+      const tbody = document.getElementById("corpoTabela");
+      tbody.innerHTML = "";
+      let alunosFiltrados = [...alunosBase];
+
+      if (FILTRO_RAPIDO === 'matriculados') {
+        alunosFiltrados = alunosFiltrados.filter(alunoAtivoMatriculado);
+      } else if (FILTRO_RAPIDO === 'naoEnturmados') {
+        alunosFiltrados = alunosFiltrados.filter(a => alunoSemCurso(a) && !alunoTransferido(a));
+      } else if (FILTRO_RAPIDO === 'transferidos') {
+        alunosFiltrados = alunosFiltrados.filter(alunoTransferido);
+      } else if (FILTRO_RAPIDO === 'disponiveis') {
+        alunosFiltrados = [...alunosBase];
+      }
+
+      if (CURSO_FILTRO) {
+        alunosFiltrados = alunosFiltrados.filter(a => String(a[5] || '').trim() === CURSO_FILTRO);
+      }
+
+      document.getElementById('qtdeEncontrados').textContent = alunosFiltrados.length;
+
+      const mobile = isMobileTabela();
+
+      alunosFiltrados.forEach(aluno => {
+        let tr = document.createElement("tr");
+        let matricula = aluno[0];
+        let nome = aluno[1];
+        let turma = aluno[2];
+        let mencao = aluno[3];
+        let ranking = aluno[4];
+        let escolha = aluno[5];
+        let profTerca = aluno[6];
+        let profQuarta = aluno[7];
+        const trilha = detectarTrilhaAluno(aluno) || String(aluno[8] || '');
+
+        if (escolha && escolha !== "") tr.classList.add("status-ok");
+        if (String(turma).includes("TRANSF")) tr.classList.add("status-transf");
+
+        let options = `<option value="">-- Selecione um Curso --</option>`;
+        cursosBase.forEach(c => {
+          let selected = (escolha === c.codigo) ? "selected" : "";
+          let disponivel = Number(c.vagasOcupadas || 0) < 35 || escolha === c.codigo;
+          let label = disponivel ? "" : " [LOTADO]";
+          options += `<option value="${c.codigo}" ${selected} title="${c.nome}">${c.codigo} - ${c.nome}${label}</option>`;
+        });
+
+        const isTransf = String(turma).includes("TRANSF");
+        const btnTransfTitle = isTransf ? "Desfazer transferência" : "Marcar como transferido";
+        const btnTransfClass = isTransf ? "btn-desf" : "btn-transf";
+        const btnTransfIconClass = isTransf ? "icon-undo bg-orange" : "icon-transfer bg-red";
+        const statusHTML = isTransf ? `<span class="status-pill danger">Transferido</span>` : (escolha && escolha !== '' ? `<span class="status-pill success">Matriculado</span>` : `<span class="status-pill warning">Pendente</span>`);
+
+        let nomeCursoHTML = '';
+        if (escolha && escolha !== "") {
+          const cursoSelecionado = cursosBase.find(c => c.codigo === escolha) || DADOS.cursos.find(c => c.codigo === escolha);
+          if (cursoSelecionado) nomeCursoHTML = `<span class="nome-curso">${cursoSelecionado.nome}</span>`;
+        }
+
+        const actionButtonsDesktop = `
+          <div class="actions desktop-only">
+            <button class="btn-save icon-btn icon-save bg-green" title="Salvar" onclick="salvar('${matricula}')">Salvar</button>
+            <button class="btn-limpar icon-btn icon-clear bg-orange" title="Limpar" onclick="limpar('${matricula}')">Limpar</button>
+            <button class="btn-editar icon-btn icon-edit bg-blue" title="Editar" onclick="abrirModalEditar('${matricula}')">Editar</button>
+            <button class="${btnTransfClass} icon-btn ${btnTransfIconClass}" title="${btnTransfTitle}" onclick="transf('${matricula}')">${btnTransfTitle}</button>
+            <button class="btn-excluir icon-btn icon-delete bg-slate" title="Excluir" onclick="excluir('${matricula}')">Excluir</button>
+          </div>`;
+
+        const actionButtonsMobile = `
+          <div class="action-menu mobile-only">
+            <button id="mobile-trigger-${matricula}" class="icon-btn mobile-action-trigger bg-slate icon-more" title="Ações" onclick="executarAcaoMobile('${matricula}')">Ações</button>
+            <div id="mobile-actions-${matricula}" class="mobile-action-list">
+              <button class="mobile-action-item" onclick="escolherAcaoMobile('${matricula}','salvar')">Salvar</button>
+              <button class="mobile-action-item" onclick="escolherAcaoMobile('${matricula}','limpar')">Limpar</button>
+              <button class="mobile-action-item" onclick="escolherAcaoMobile('${matricula}','editar')">Editar</button>
+              <button class="mobile-action-item" onclick="escolherAcaoMobile('${matricula}','transf')">${isTransf ? 'Desfazer transferência' : 'Transferir'}</button>
+              <button class="mobile-action-item" onclick="escolherAcaoMobile('${matricula}','excluir')">Excluir</button>
+            </div>
+          </div>`;
+
+        if (mobile) {
+          tr.innerHTML = `
+            <td class="col-mobile"><span class="rank-badge">${ranking || '-'}</span></td>
+            <td class="col-mobile">
+              <div class="nome-cell"><strong>${nome}</strong><small>${trilha}</small></div>
+            </td>
+            <td class="col-mobile"><span class="turma-pill">${turma}</span></td>
+            <td class="curso-cell col-mobile">
+              <div class="mobile-course-stack">
+                <select id="sel-${matricula}" onchange="preencherHorarios('${matricula}')">${options}</select>
+                ${nomeCursoHTML || ''}
+                <div class="mobile-prof-stack">
+                  <span class="curso-pill">Terça: <strong id="terca-${matricula}" style="margin-left:4px;">${profTerca || '-'}</strong></span>
+                  <span class="curso-pill">Quarta: <strong id="quarta-${matricula}" style="margin-left:4px;">${profQuarta || '-'}</strong></span>
+                </div>
+              </div>
+            </td>
+            <td class="col-mobile">${actionButtonsMobile}</td>
+          `;
+        } else {
+          tr.innerHTML = `
+            <td><span class="rank-badge">${ranking || '-'}</span></td>
+            <td class="col-hide-mobile"><span class="matricula-pill">${matricula}</span></td>
+            <td>
+              <div class="nome-cell"><strong>${nome}</strong><small>${trilha}</small></div>
+            </td>
+            <td><span class="turma-pill">${turma}</span></td>
+            <td class="col-hide-mobile">${mencao ? `<span class="mencao-pill">${formatarMencaoTela(mencao)}</span>` : `<span class="curso-pill">--</span>`}</td>
+            <td class="curso-cell">
+              <select id="sel-${matricula}" onchange="preencherHorarios('${matricula}')">${options}</select>
+              ${nomeCursoHTML}
+              <div style="margin-top: 6px; display:flex; gap:8px; flex-wrap:wrap;">
+                <span class="curso-pill">Terça: <strong id="terca-${matricula}" style="margin-left:4px;">${profTerca || '-'}</strong></span>
+                <span class="curso-pill">Quarta: <strong id="quarta-${matricula}" style="margin-left:4px;">${profQuarta || '-'}</strong></span>
+              </div>
+            </td>
+            <td class="col-hide-mobile">${statusHTML}</td>
+            <td>${actionButtonsDesktop}</td>
+          `;
+        }
+
+        tbody.appendChild(tr);
+      });
+
+      filtrar();
+    }
+
+    function preencherHorarios(matricula) {
+      const select = document.getElementById(`sel-${matricula}`);
+      const codigoCurso = select.value;
+      
+      const tdTerca = document.getElementById(`terca-${matricula}`);
+      const tdQuarta = document.getElementById(`quarta-${matricula}`);
+      
+      const linhaAluno = select.closest('tr');
+      const nomeCursoSpan = linhaAluno.querySelector('.nome-curso');
+      
+      if (codigoCurso) {
+        const curso = DADOS.cursos.find(c => c.codigo === codigoCurso);
+        if (curso) {
+          tdTerca.textContent = curso.profTerca || '-';
+          tdQuarta.textContent = curso.profQuarta || '-';
+          
+          if (nomeCursoSpan) {
+            nomeCursoSpan.textContent = curso.nome;
+          } else {
+            const newSpan = document.createElement('span');
+            newSpan.className = 'nome-curso';
+            newSpan.textContent = curso.nome;
+            select.parentElement.insertBefore(newSpan, select.nextSibling);
+          }
+          return;
+        }
+      }
+      
+      tdTerca.textContent = '-';
+      tdQuarta.textContent = '-';
+      
+      if (nomeCursoSpan) {
+        nomeCursoSpan.remove();
+      }
+    }
+
+    function salvar(matricula, forcar = false) {
+      console.log('🔵 Função salvar chamada');
+      console.log('   Matrícula:', matricula);
+      
+      const selectElement = document.getElementById(`sel-${matricula}`);
+      const codigoCurso = selectElement ? selectElement.value : "";
+      
+      console.log('   Curso selecionado:', codigoCurso);
+      
+      if(!codigoCurso) {
+        mostrarDialog("❌ Selecione um curso antes de salvar!");
+        return;
+      }
+
+      const linha = selectElement.closest('tr');
+      const btnSave = linha.querySelector('.btn-save');
+      
+      if (!btnSave) {
+        console.error('❌ Botão não encontrado!');
+        mostrarDialog("❌ Erro ao encontrar o botão de salvar");
+        return;
+      }
+      
+      const textoOriginal = btnSave.innerText;
+      btnSave.classList.remove('icon-save'); btnSave.style.fontSize='12px'; btnSave.textContent = '...';
+      btnSave.disabled = true;
+
+      SALVANDO = true;
+      console.log('📡 Enviando para backend...');
+
+      google.script.run
+        .withSuccessHandler(res => {
+          console.log('✅ Resposta recebida:', res);
+          
+          btnSave.textContent=''; btnSave.classList.add('icon-save'); btnSave.style.fontSize='0';
+          btnSave.disabled = false;
+          SALVANDO = false;
+          
+          if(res.erro) {
+            console.error('❌ Erro:', res.erro);
+            mostrarDialog("❌ " + res.erro);
+          } else if(res.confirmacao) {
+            mostrarDialog(res.msg, 'confirm', (confirmed) => {
+              if (confirmed) {
+                salvar(matricula, true);
+              }
+            });
+          } else if(res.sucesso) {
+            console.log('✅ SALVO COM SUCESSO!');
+            
+            document.getElementById(`terca-${matricula}`).textContent = res.profTerca || '-';
+            document.getElementById(`quarta-${matricula}`).textContent = res.profQuarta || '-';
+            
+            linha.classList.add('status-ok');
+            
+            mostrarDialog('✅ Curso salvo com sucesso!', 'info', () => {
+              setTimeout(() => {
+                recarregarDados();
+              }, 1000);
+            });
+          }
+        })
+        .withFailureHandler(err => {
+          console.error('❌ ERRO CRÍTICO:', err);
+          btnSave.textContent=''; btnSave.classList.add('icon-save'); btnSave.style.fontSize='0';
+          btnSave.disabled = false;
+          SALVANDO = false;
+          mostrarDialog("❌ Erro ao salvar: " + err.message);
+        })
+        .processarMatricula(matricula, codigoCurso, forcar);
+    }
+
+    function transf(matricula) {
+      const linha = document.querySelector(`tr:has(#sel-${matricula})`);
+      const isTransf = linha && linha.classList.contains('status-transf');
+      
+      if (isTransf) {
+        mostrarDialog("⚠️ Confirma DESFAZER a transferência e retomar a vaga?", 'confirm', (confirmed) => {
+          if (confirmed) {
+            desfazerTransf(matricula);
+          }
         });
       } else {
-        dialog(msg, "info", () => carregarDados());
+        mostrarDialog("⚠️ Confirma marcar como Transferido e liberar a vaga?", 'confirm', (confirmed) => {
+          if (confirmed) {
+            marcarTransf(matricula);
+          }
+        });
       }
-    } catch(err) { status.textContent = "❌ " + err.message; }
-  };
-  reader.readAsText(file, "UTF-8");
-}
+    }
 
-// ── Transferidos pendentes ────────────────────────────────────
-async function abrirTransferidos() {
-  try {
-    const res = await apiGet("getResumoPendencias");
-    const lista = res?.transferidos || [];
-    if (!lista.length) { dialog("✅ Nenhum transferido pendente.", "info", () => carregarDados()); return; }
-    const checks = lista.map(a =>
-      `<label style="display:block;margin:6px 0;font-size:13px;cursor:pointer">
-        <input type="checkbox" class="chk-tr" value="${a.matricula}" checked style="margin-right:6px">
-        ${a.nome} — ${a.turma} — ${a.matricula}
-      </label>`
-    ).join("");
-    dialog(`<strong>Possíveis transferidos:</strong><br><br>
-      <div style="max-height:40vh;overflow:auto;text-align:left">${checks}</div>`, "transferidos");
-  } catch(e) { dialog("❌ " + e.message); }
-}
+    function marcarTransf(matricula) {
+      SALVANDO = true;
+      google.script.run
+        .withSuccessHandler(() => {
+          SALVANDO = false;
+          mostrarDialog('✅ Aluno marcado como Transferido!', 'info', () => {
+            recarregarDados();
+          });
+        })
+        .withFailureHandler(err => {
+          SALVANDO = false;
+          mostrarDialog("❌ Erro: " + err.message);
+        })
+        .marcarTransferido(matricula);
+    }
 
-async function confirmarTransfSelecionados() {
-  const mats = Array.from(document.querySelectorAll(".chk-tr:checked")).map(x => x.value);
-  if (!mats.length) { dialog("⚠️ Nenhum selecionado."); return; }
-  const res = await apiPost("confirmarTransferidos", { matriculas: mats });
-  dialog(`✅ ${res.marcados} confirmado(s). Restantes: ${res.restantes}.`, "info", () => carregarDados());
-}
+    function desfazerTransf(matricula) {
+      SALVANDO = true;
+      google.script.run
+        .withSuccessHandler(() => {
+          SALVANDO = false;
+          mostrarDialog('✅ Transferência desfeita! Vaga retomada.', 'info', () => {
+            recarregarDados();
+          });
+        })
+        .withFailureHandler(err => {
+          SALVANDO = false;
+          mostrarDialog("❌ Erro: " + err.message);
+        })
+        .desfazerTransferido(matricula);
+    }
 
-async function confirmarTodosTransf() {
-  const res = await apiPost("confirmarTodosTransferidos");
-  dialog(`✅ ${res.marcados} transferido(s) confirmado(s).`, "info", () => carregarDados());
-}
+    function limpar(matricula) {
+      mostrarDialog(`🧹 Confirma limpar a escolha de curso do aluno com matrícula ${matricula}?\n\nIsso irá limpar: Curso, Terça e Quarta.`, 'confirm', (confirmed) => {
+        if (confirmed) {
+          SALVANDO = true;
+          
+          google.script.run
+            .withSuccessHandler(res => {
+              SALVANDO = false;
+              
+              if(res.erro) {
+                mostrarDialog("❌ " + res.erro);
+              } else if(res.sucesso) {
+                // Limpa visualmente
+                const selectElement = document.getElementById(`sel-${matricula}`);
+                if (selectElement) {
+                  selectElement.value = "";
+                }
+                
+                const tdTerca = document.getElementById(`terca-${matricula}`);
+                const tdQuarta = document.getElementById(`quarta-${matricula}`);
+                if (tdTerca) tdTerca.innerHTML = '-';
+                if (tdQuarta) tdQuarta.innerHTML = '-';
+                
+                // Remove classe status-ok
+                if (selectElement) {
+                  const linha = selectElement.closest('tr');
+                  if (linha) {
+                    linha.classList.remove('status-ok');
+                  }
+                }
+                
+                mostrarDialog('✅ Escolha limpa com sucesso!', 'info', () => {
+                  recarregarDados();
+                });
+              }
+            })
+            .withFailureHandler(err => {
+              SALVANDO = false;
+              mostrarDialog("❌ Erro ao limpar: " + err.message);
+            })
+            .limparMatricula(matricula);
+        }
+      });
+    }
 
-// ── Sorteio ───────────────────────────────────────────────────
-function abrirSorteio() {
-  const sem = alunosDaTrilha().filter(isPendente).length;
-  document.getElementById("sorteio-desc").textContent =
-    `Serão sorteados cursos para ${sem} aluno(s) ainda sem matrícula em cursos, ` +
-    `priorizando turmas com menos alunos. Continuar?`;
-  abrirModal("modal-sorteio");
-}
+    // ===== FUNÇÕES DO MODAL EDITAR =====
+    let MATRICULA_EDITANDO = null;
 
-async function executarSorteio() {
-  const btn = document.getElementById("btn-sorteio-confirm");
-  btn.disabled = true; btn.textContent = "⏳ Sorteando...";
-  fecharModal("modal-sorteio");
+    function abrirModalEditar(matricula) {
+      MATRICULA_EDITANDO = matricula;
+      
+      // Buscar dados do aluno
+      const aluno = DADOS.alunos.find(a => String(a[0]).trim() === String(matricula).trim());
+      
+      if (!aluno) {
+        mostrarDialog('❌ Aluno não encontrado!');
+        return;
+      }
+      
+      // Preencher formulário
+      document.getElementById('editMatricula').value = aluno[0] || '';
+      document.getElementById('editNome').value = aluno[1] || '';
+      document.getElementById('editTurma').value = aluno[2] || '';
+      document.getElementById('editMencao').value = aluno[3] || '';
+      document.getElementById('editTR').value = aluno[8] || '';
+      
+      // Limpar calculadora
+      limparNotas();
+      
+      // Abrir modal
+      document.getElementById('modalEditarAluno').style.display = 'block';
+    }
 
-  const alunosSem = alunosDaTrilha().filter(isPendente);
-  const cursos = cursosDaTrilha().filter(c => (c.vagasOcupadas||0) < 35);
+    function fecharModalEditar() {
+      document.getElementById('modalEditarAluno').style.display = 'none';
+      MATRICULA_EDITANDO = null;
+    }
 
-  if (!alunosSem.length || !cursos.length) {
-    dialog("⚠️ Não há alunos pendentes ou cursos disponíveis."); btn.disabled=false; btn.textContent="Sortear"; return;
-  }
+    function normalizarMencao(valor) {
+      if (!valor || valor.trim() === '') return '';
+      
+      // Remove espaços
+      valor = valor.trim();
+      
+      // Substitui vírgula por ponto
+      valor = valor.replace(',', '.');
+      
+      // Valida se é número
+      const numero = parseFloat(valor);
+      
+      if (isNaN(numero)) {
+        return null; // Inválido
+      }
+      
+      // Verifica se está entre 0 e 10
+      if (numero < 0 || numero > 10) {
+        return null; // Fora do range
+      }
+      
+      // Retorna com 2 casas decimais
+      return numero.toFixed(2);
+    }
 
-  // Cópia local de vagas para controle durante o sorteio
-  const vagasLocal = Object.fromEntries(cursos.map(c => [c.codigo, c.vagasOcupadas||0]));
+    function calcularMedia() {
+      const notas = [];
+      let notasInvalidas = [];
+      
+      for (let i = 1; i <= 12; i++) {
+        const input = document.getElementById(`nota${i}`);
+        if (input && input.value.trim() !== '') {
+          const valorNormalizado = normalizarMencao(input.value);
+          if (valorNormalizado === null) {
+            notasInvalidas.push(`Nota ${i}: "${input.value}"`);
+            input.style.borderColor = '#d93025';
+          } else {
+            notas.push(parseFloat(valorNormalizado));
+            input.style.borderColor = '#1e8e3e';
+          }
+        } else {
+          input.style.borderColor = '#dadce0';
+        }
+      }
+      
+      if (notasInvalidas.length > 0) {
+        document.getElementById('mediaCalculada').textContent = 'ERRO';
+        document.getElementById('mediaCalculada').style.color = '#d93025';
+        document.getElementById('mediaCalculada').title = 'Notas inválidas:\n' + notasInvalidas.join('\n');
+        return;
+      }
+      
+      const mediaSpan = document.getElementById('mediaCalculada');
+      
+      if (notas.length === 0) {
+        mediaSpan.textContent = '-';
+        mediaSpan.style.color = '#666';
+        mediaSpan.title = '';
+        return;
+      }
+      
+      const soma = notas.reduce((acc, nota) => acc + nota, 0);
+      const media = soma / notas.length;
+      
+      mediaSpan.textContent = media.toFixed(2);
+      mediaSpan.style.color = '#1e8e3e';
+      mediaSpan.title = `Média de ${notas.length} nota(s)`;
+    }
 
-  function sortearComPeso(lista) {
-    let pool = [];
-    lista.forEach(c => {
-      const n = Math.max(1, Math.ceil((35 - vagasLocal[c.codigo]) / 7));
-      for (let i = 0; i < n; i++) pool.push(c);
+    function usarMedia() {
+      const mediaSpan = document.getElementById('mediaCalculada');
+      const media = mediaSpan.textContent;
+      
+      if (media === 'ERRO') {
+        mostrarDialog('❌ Corrija as notas inválidas primeiro! Notas devem estar entre 0 e 10.', 'error');
+        return;
+      }
+      
+      if (media !== '-') {
+        document.getElementById('editMencao').value = media;
+        mostrarDialog('✅ Média aplicada ao campo Menção!', 'info');
+      } else {
+        mostrarDialog('❌ Calcule a média primeiro digitando as notas!', 'error');
+      }
+    }
+
+    function limparNotas() {
+      for (let i = 1; i <= 12; i++) {
+        const input = document.getElementById(`nota${i}`);
+        if (input) {
+          input.value = '';
+        }
+      }
+      document.getElementById('mediaCalculada').textContent = '-';
+      document.getElementById('mediaCalculada').style.color = '#666';
+    }
+
+    // Form submit do modal editar
+    document.addEventListener('DOMContentLoaded', function() {
+      const formEditar = document.getElementById('formEditarAluno');
+      if (formEditar) {
+        formEditar.onsubmit = function(e) {
+          e.preventDefault();
+          salvarEdicaoAluno();
+        };
+      }
     });
-    return pool[Math.floor(Math.random() * pool.length)];
-  }
 
-  let sorteados = 0;
-  for (let i = 0; i < alunosSem.length; i++) {
-    const aluno = alunosSem[i];
-    const mat = String(aluno[0]);
-    const disponiveis = cursos.filter(c => vagasLocal[c.codigo] < 35);
-    if (!disponiveis.length) break;
+    function salvarEdicaoAluno() {
+      const novaMatricula = document.getElementById('editMatricula').value.trim();
+      const nome = document.getElementById('editNome').value.trim();
+      const turma = document.getElementById('editTurma').value.trim();
+      let mencao = document.getElementById('editMencao').value.trim();
+      const tr = document.getElementById('editTR').value;
 
-    const curso = sortearComPeso(disponiveis);
-    try {
-      await new Promise(res => setTimeout(res, 250 * i)); // anti-throttle
-      const r = await apiPost("processarMatricula", { matricula: mat, codigoCurso: curso.codigo, forcar: false });
-      if (r.sucesso) { vagasLocal[curso.codigo]++; sorteados++; }
-    } catch(e) { /* continua */ }
-  }
+      // Validar campos obrigatórios
+      if (!novaMatricula || !nome || !turma || !tr) {
+        mostrarDialog('❌ Preencha todos os campos obrigatórios!', 'error');
+        return;
+      }
 
-  btn.disabled = false; btn.textContent = "Sortear";
-  dialog(`✅ ${sorteados} aluno(s) sorteado(s) com sucesso!`, "info", () => carregarDados());
-}
+      // Normalizar menção
+      if (mencao !== '') {
+        const mencaoNormalizada = normalizarMencao(mencao);
+        if (mencaoNormalizada === null) {
+          mostrarDialog('❌ Menção inválida! Use um número entre 0 e 10 (ex: 9.25 ou 9,25)', 'error');
+          return;
+        }
+        mencao = mencaoNormalizada;
+      }
 
-// ── Exportar CSV ──────────────────────────────────────────────
-async function exportarCSV() {
-  dialog("⏳ Gerando CSV(s) no Drive...", "info");
-  try {
-    const res = await apiGet("exportarAlunos2026CSV", { separador: ";" });
-    if (res.erro) { dialog("❌ " + res.erro); return; }
-    const links = res.arquivos.map(a => `<a href="${a.url}" target="_blank">${a.nome}</a> (${a.quantidade} alunos)`).join("<br>");
-    dialog(`✅ Exportado!<br><br>${links}<br><br><a href="${res.pastaUrl}" target="_blank"><strong>Abrir pasta</strong></a>`, "info");
-  } catch(e) { dialog("❌ " + e.message); }
-}
+      const dadosEdicao = {
+        matriculaAntiga: MATRICULA_EDITANDO,
+        matricula: novaMatricula,
+        nome: nome,
+        turma: turma,
+        mencao: mencao,
+        tr: tr
+      };
 
-// ── Lista turma / professor ───────────────────────────────────
-async function abrirListaTurma() {
-  const turmas = [...new Set(DADOS.alunos.map(a => String(a[2]||"").trim()).filter(t => t && !t.includes("TRANSF") && t !== "0"))].sort();
-  if (!turmas.length) { dialog("Nenhuma turma encontrada."); return; }
-  const checks = turmas.map(t => `<label style="display:block;margin:5px 0;font-size:13px;cursor:pointer"><input type="checkbox" class="chk-turma" value="${t}" style="margin-right:6px">${t}</label>`).join("");
-  dialog(`<strong>Selecione as turmas:</strong><br><br><div style="max-height:40vh;overflow:auto;text-align:left">${checks}</div>`, "turma");
-}
+      const btnSalvar = document.getElementById('btnSalvarEdicao');
+      btnSalvar.disabled = true;
+      btnSalvar.textContent = '⏳ Salvando...';
 
-async function gerarListaTurma() {
-  const selecionadas = Array.from(document.querySelectorAll(".chk-turma:checked")).map(x => x.value);
-  if (!selecionadas.length) { dialog("⚠️ Selecione ao menos uma turma."); return; }
-  dialog("⏳ Gerando lista...", "info");
-  try {
-    const res = await apiGet("gerarDadosListaTurma", { turmas: selecionadas });
-    if (res.erro) { dialog("❌ " + res.erro); return; }
-    gerarPDFClienteTurma(res.dados);
-  } catch(e) { dialog("❌ " + e.message); }
-}
+      SALVANDO = true;
 
-function gerarPDFClienteTurma(dados) {
-  const { jsPDF } = window.jspdf;
-  const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
-  dados.forEach((turmaObj, idx) => {
-    if (idx > 0) doc.addPage();
-    doc.setFontSize(14).setFont(undefined,"bold").text(`LISTA DE FREQUÊNCIA — TURMA ${turmaObj.turma}`, 14, 16);
-    doc.autoTable({
-      startY: 22, margin: { left: 14, right: 14 },
-      head: [["#","Nome","Trilha","Terça","Quarta"]],
-      body: turmaObj.alunos.map((a,i) => [i+1, a.nome, a.trilha, a.terca, a.quarta]),
-      styles: { fontSize: 9 },
-      headStyles: { fillColor: [26,108,240] },
-    });
-  });
-  doc.save("lista_turmas.pdf");
-}
+      google.script.run
+        .withSuccessHandler(res => {
+          btnSalvar.disabled = false;
+          btnSalvar.textContent = 'Salvar Alterações';
+          SALVANDO = false;
+          
+          if (res.erro) {
+            mostrarDialog('❌ ' + res.erro, 'error');
+          } else if (res.sucesso) {
+            fecharModalEditar();
+            mostrarDialog('✅ Aluno atualizado com sucesso!', 'info', () => {
+              recarregarDados();
+            });
+          }
+        })
+        .withFailureHandler(err => {
+          btnSalvar.disabled = false;
+          btnSalvar.textContent = 'Salvar Alterações';
+          SALVANDO = false;
+          mostrarDialog('❌ Erro ao salvar: ' + err.message, 'error');
+        })
+        .editarAluno(dadosEdicao);
+    }
 
-async function abrirListaProfessor() {
-  try {
-    const lista = await apiGet("obterProfessoresDaBase");
-    if (!lista.length) { dialog("Nenhum professor encontrado na aba BASE."); return; }
-    const checks = lista.map(p => `<label style="display:block;margin:5px 0;font-size:13px;cursor:pointer"><input type="checkbox" class="chk-prof" value="${p}" style="margin-right:6px">${p}</label>`).join("");
-    dialog(`<strong>Selecione os professores:</strong><br><br><div style="max-height:40vh;overflow:auto;text-align:left">${checks}</div>`, "professor");
-  } catch(e) { dialog("❌ " + e.message); }
-}
+    function excluir(matricula) {
+      mostrarDialog(`⚠️ ATENÇÃO!\n\nDeseja EXCLUIR permanentemente o aluno com matrícula ${matricula}?\n\nEsta ação NÃO pode ser desfeita!`, 'confirm', (confirmed) => {
+        if (confirmed) {
+          SALVANDO = true;
+          
+          google.script.run
+            .withSuccessHandler(() => {
+              SALVANDO = false;
+              mostrarDialog('✅ Aluno excluído com sucesso!', 'info', () => {
+                recarregarDados();
+              });
+            })
+            .withFailureHandler(err => {
+              SALVANDO = false;
+              mostrarDialog("❌ Erro ao excluir: " + err.message);
+            })
+            .excluirAluno(matricula);
+        }
+      });
+    }
 
-async function gerarListaProfessor() {
-  const selecionados = Array.from(document.querySelectorAll(".chk-prof:checked")).map(x => x.value);
-  if (!selecionados.length) { dialog("⚠️ Selecione ao menos um professor."); return; }
-  dialog("⏳ Gerando lista...", "info");
-  try {
-    const res = await apiGet("gerarDadosListaProfessor", { professores: selecionados });
-    if (res.erro) { dialog("❌ " + res.erro); return; }
-    gerarPDFClienteProfessor(res.dados);
-  } catch(e) { dialog("❌ " + e.message); }
-}
+    function filtrar() {
+      let texto = document.getElementById("filtro").value.toLowerCase();
+      let linhas = document.getElementById("corpoTabela").getElementsByTagName("tr");
+      
+      for(let tr of linhas) {
+        let conteudo = tr.innerText.toLowerCase();
+        tr.style.display = conteudo.includes(texto) ? "" : "none";
+      }
+    }
 
-function gerarPDFClienteProfessor(dados) {
-  const { jsPDF } = window.jspdf;
-  const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
-  dados.forEach((obj, idx) => {
-    if (idx > 0) doc.addPage();
-    doc.setFontSize(13).setFont(undefined,"bold").text(`PROFESSOR: ${obj.professor}`, 14, 14);
-    doc.setFontSize(9).setFont(undefined,"normal").text(`Trilha: ${obj.info.codigoTrilha} — ${obj.info.nomeTrilha||""} | Horário: ${obj.info.horario||""}`, 14, 21);
-    doc.autoTable({
-      startY: 26, margin: { left: 14, right: 14 },
-      head: [["#","Nome","Turma"]],
-      body: obj.alunos.map((a,i) => [i+1, a.nome, a.turma]),
-      styles: { fontSize: 9 },
-      headStyles: { fillColor: [26,108,240] },
-    });
-  });
-  doc.save("lista_professores.pdf");
-}
+    function recarregarDados() {
+      if (TRILHA_ATUAL && !SALVANDO) {
+        google.script.run
+          .withSuccessHandler(iniciar)
+          .withFailureHandler(mostrarErro)
+          .getDadosPainel(null);
+      }
+    }
 
-// ── UI: Filtros e navegação ───────────────────────────────────
-exp("selectTrilha", (t, btn) => {
-  TRILHA = t; FILTRO = "todos"; CURSO_SEL = null;
-  document.querySelectorAll(".sb-btn").forEach(b => b.classList.remove("active"));
-  btn.classList.add("active");
-  carregarDados();
-});
+    function iniciarAtualizacaoAutomatica() {
+      if (INTERVALO_ATUALIZACAO) {
+        clearInterval(INTERVALO_ATUALIZACAO);
+      }
+      
+      INTERVALO_ATUALIZACAO = setInterval(() => {
+        if (!SALVANDO) {
+          console.log('🔄 Atualizando dados automaticamente...');
+          recarregarDados();
+        } else {
+          console.log('⏸️ Salvamento em andamento, pulando atualização');
+        }
+      }, 90000);
+    }
 
-exp("setFiltroRapido", (f) => { FILTRO = f; renderTabela(); });
-exp("filtrarRapido",   (f) => { FILTRO = f; renderTabela(); });
-exp("filtrarCurso",    (cod) => { CURSO_SEL = CURSO_SEL === cod ? null : cod; renderizarTudo(); });
-exp("filtrar",         ()   => renderTabela());
+    function mostrarBadgeAtualizacao() {
+      const badge = document.getElementById('updateBadge');
+      badge.classList.add('show');
+      setTimeout(() => {
+        badge.classList.remove('show');
+      }, 2000);
+    }
 
-exp("toggleSidebar", () => {
-  document.getElementById("sidebar").classList.toggle("open");
-  document.getElementById("sidebar-overlay").classList.toggle("show");
-});
+    // ===== FUNÇÕES DOS MODAIS DE LISTAS =====
+    function abrirModalListaTurma() {
+      carregarTurmas();
+      document.getElementById('modalListaTurma').style.display = 'block';
+    }
 
-// ── UI: Modais ────────────────────────────────────────────────
-exp("abrirModal",   (id) => { document.getElementById(id).classList.add("open"); });
-exp("fecharModal",  (id) => { document.getElementById(id).classList.remove("open"); });
-exp("abrirImport",  ()  => abrirModal("modal-import"));
-exp("abrirSorteio", ()  => abrirSorteio());
+    function fecharModalListaTurma() {
+      document.getElementById('modalListaTurma').style.display = 'none';
+    }
 
-// ── UI: Dropdowns mobile ──────────────────────────────────────
-exp("toggleDropdown", (id) => {
-  const dd = document.getElementById(id);
-  if (!dd) return;
-  const wasOpen = dd.classList.contains("open");
-  document.querySelectorAll(".mobile-dropdown.open").forEach(d => d.classList.remove("open"));
-  if (!wasOpen) dd.classList.add("open");
-  DROPDOWN_ABERTO = wasOpen ? null : id;
-});
-exp("fecharDropdown", () => {
-  document.querySelectorAll(".mobile-dropdown.open").forEach(d => d.classList.remove("open"));
-  DROPDOWN_ABERTO = null;
-});
-document.addEventListener("click", e => {
-  if (!e.target.closest(".mobile-menu-wrap")) fecharDropdown();
-});
+    function abrirModalListaProfessor() {
+      carregarProfessores();
+      document.getElementById('modalListaProfessor').style.display = 'block';
+    }
 
-// ── Dialog genérico ───────────────────────────────────────────
-function dialog(msg, tipo = "info", callback = null) {
-  document.getElementById("dialog-msg").innerHTML = msg;
-  const btns = document.getElementById("dialog-btns");
-  btns.innerHTML = "";
+    function fecharModalListaProfessor() {
+      document.getElementById('modalListaProfessor').style.display = 'none';
+    }
 
-  if (tipo === "confirm") {
-    const ok  = mkBtn("Confirmar", "btn success", () => { fecharDialog(); callback && callback(true); });
-    const can = mkBtn("Cancelar",  "btn",         () => { fecharDialog(); callback && callback(false); });
-    btns.append(can, ok);
-  } else if (tipo === "transferidos") {
-    const conf = mkBtn("Confirmar selecionados", "btn primary",
-      () => { fecharDialog(); confirmarTransfSelecionados(); });
-    const todos = mkBtn("Confirmar todos", "btn success",
-      () => { fecharDialog(); confirmarTodosTransf(); });
-    const can  = mkBtn("Fechar", "btn", fecharDialog);
-    btns.append(can, conf, todos);
-  } else if (tipo === "turma") {
-    const gerar = mkBtn("Gerar PDF", "btn primary",
-      () => { fecharDialog(); gerarListaTurma(); });
-    const can = mkBtn("Fechar", "btn", fecharDialog);
-    btns.append(can, gerar);
-  } else if (tipo === "professor") {
-    const gerar = mkBtn("Gerar PDF", "btn primary",
-      () => { fecharDialog(); gerarListaProfessor(); });
-    const can = mkBtn("Fechar", "btn", fecharDialog);
-    btns.append(can, gerar);
-  } else {
-    const ok = mkBtn("OK", "btn primary", () => { fecharDialog(); callback && callback(); });
-    btns.append(ok);
-  }
-  document.getElementById("dialog-bg").classList.add("open");
-}
+    function carregarTurmas() {
+      // Filtrar turmas pela trilha selecionada
+      let turmas;
+      if (TRILHA_ATUAL) {
+        // Filtrar por ano: TR1 = turmas 1x, TR2 = turmas 2x, TR3 = turmas 3x
+        const anoTurma = TRILHA_ATUAL.replace('TR', ''); // '1', '2' ou '3'
+        turmas = [...new Set(
+          DADOS.alunos
+            .filter(a => {
+              const tr = detectarTrilhaAluno(a);
+              const turmaAluno = String(a[2]).trim();
+              // Verificar se é da trilha E se a turma começa com o número certo
+              return tr === TRILHA_ATUAL && 
+                     turmaAluno.startsWith(anoTurma) &&
+                     turmaAluno !== '' && 
+                     turmaAluno !== '0' && 
+                     !turmaAluno.includes('TRANSF');
+            })
+            .map(a => a[2])
+        )].sort();
+      } else {
+        turmas = [...new Set(
+          DADOS.alunos
+            .map(a => a[2])
+            .filter(t => t && t !== '' && t !== '0' && !t.includes('TRANSF'))
+        )].sort();
+      }
+      
+      const lista = document.getElementById('listaTurmas');
+      if (turmas.length === 0) {
+        lista.innerHTML = '<p style="color: #999; text-align: center;">Nenhuma turma ativa encontrada</p>';
+        return;
+      }
+      
+      lista.innerHTML = turmas.map(t => 
+        `<label style="display: block; padding: 5px;">
+          <input type="checkbox" class="check-turma" value="${t}"> ${t}
+        </label>`
+      ).join('');
+    }
 
-function mkBtn(label, cls, fn) {
-  const b = document.createElement("button");
-  b.className = cls; b.textContent = label;
-  b.onclick = fn; return b;
-}
-function fecharDialog() {
-  document.getElementById("dialog-bg").classList.remove("open");
-}
+    function carregarProfessores() {
+      const lista = document.getElementById('listaProfessores');
+      lista.innerHTML = '<p style="color: #999; text-align: center;">⏳ Carregando professores...</p>';
+      
+      // Buscar professores diretamente da BASE (coluna W)
+      google.script.run
+        .withSuccessHandler(professores => {
+          if (!professores || professores.length === 0) {
+            lista.innerHTML = '<p style="color: #999; text-align: center;">Nenhum professor encontrado</p>';
+            return;
+          }
+          
+          // Filtrar por trilha se necessário
+          let professorsFiltrados = professores;
+          if (TRILHA_ATUAL) {
+            // Filtrar professores que contenham o código da trilha
+            professorsFiltrados = professores.filter(p => p.includes(TRILHA_ATUAL));
+          }
+          
+          if (professorsFiltrados.length === 0) {
+            lista.innerHTML = '<p style="color: #999; text-align: center;">Nenhum professor encontrado para esta trilha</p>';
+            return;
+          }
+          
+          lista.innerHTML = professorsFiltrados.map(p => 
+            `<label style="display: block; padding: 5px;">
+              <input type="checkbox" class="check-prof" value="${p}"> ${p}
+            </label>`
+          ).join('');
+        })
+        .withFailureHandler(err => {
+          console.error('Erro ao carregar professores:', err);
+          lista.innerHTML = '<p style="color: #c5221f; text-align: center;">❌ Erro ao carregar</p>';
+        })
+        .obterProfessoresDaBase();
+    }
 
-// ── Toast ─────────────────────────────────────────────────────
-function mostrarToast() {
-  const t = document.getElementById("toast");
-  t.classList.add("show");
-  setTimeout(() => t.classList.remove("show"), 2200);
-}
+    function toggleTodasTurmas() {
+      const checks = document.querySelectorAll('.check-turma');
+      const value = document.getElementById('checkTodasTurmas').checked;
+      checks.forEach(c => c.checked = value);
+    }
 
-// ── Expõe funções que o HTML inline chama ─────────────────────
-exp("salvar",           salvar);
-exp("limpar",           limpar);
-exp("excluir",          excluir);
-exp("transferir",       transferir);
-exp("desfazerTransf",   desfazerTransf);
-exp("preencherHorarios",preencherHorarios);
-exp("abrirEditar",      abrirEditar);
-exp("salvarNovoAluno",  salvarNovoAluno);
-exp("salvarEdicao",     salvarEdicao);
-exp("processarImportacao", processarImportacao);
-exp("executarSorteio",  executarSorteio);
-exp("abrirTransferidos",abrirTransferidos);
-exp("abrirListaTurma",  abrirListaTurma);
-exp("abrirListaProfessor", abrirListaProfessor);
-exp("exportarCSV",      exportarCSV);
+    function toggleTodosProfessores() {
+      const checks = document.querySelectorAll('.check-prof');
+      const value = document.getElementById('checkTodosProfessores').checked;
+      checks.forEach(c => c.checked = value);
+    }
 
-// ── Start ─────────────────────────────────────────────────────
-init();
-</script>
+    function gerarPDFTurmas() {
+      const selecionadas = [...document.querySelectorAll('.check-turma:checked')].map(c => c.value);
+      if (selecionadas.length === 0) {
+        mostrarDialog('❌ Selecione pelo menos uma turma!', 'error');
+        return;
+      }
+      
+      mostrarDialog('⏳ Carregando preview...', 'info');
+      google.script.run
+        .withSuccessHandler(res => {
+          if (res.erro) {
+            mostrarDialog('❌ ' + res.erro, 'error');
+          } else {
+            fecharModalListaTurma();
+            mostrarPreviewTurma(res.dados, selecionadas);
+          }
+        })
+        .withFailureHandler(err => mostrarDialog('❌ Erro: ' + err.message, 'error'))
+        .gerarDadosListaTurma(selecionadas);
+    }
+
+    function gerarPDFProfessores() {
+      const selecionados = [...document.querySelectorAll('.check-prof:checked')].map(c => c.value);
+      if (selecionados.length === 0) {
+        mostrarDialog('❌ Selecione pelo menos um professor!', 'error');
+        return;
+      }
+      
+      mostrarDialog('⏳ Carregando preview...', 'info');
+      google.script.run
+        .withSuccessHandler(res => {
+          if (res.erro) {
+            mostrarDialog('❌ ' + res.erro, 'error');
+          } else {
+            fecharModalListaProfessor();
+            mostrarPreviewProfessor(res.dados, selecionados);
+          }
+        })
+        .withFailureHandler(err => mostrarDialog('❌ Erro: ' + err.message, 'error'))
+        .gerarDadosListaProfessor(selecionados);
+    }
+
+    function mostrarPreviewTurma(dados, turmas) {
+      // Gerar PDF direto ao invés de preview
+      mostrarDialog('⏳ Gerando PDF...', 'info');
+      
+      setTimeout(() => {
+        try {
+          const { jsPDF } = window.jspdf;
+          const doc = new jsPDF('p', 'mm', 'a4');
+          
+          dados.forEach((turmaData, index) => {
+            if (index > 0) doc.addPage();
+
+            let y = 10;
+
+            // ===== BOX DA TURMA NO CANTO SUPERIOR ESQUERDO =====
+            const boxX = 10;
+            const boxY = 8;
+            const boxW = 32;
+            const boxH = 18;
+
+            //doc.setDrawColor(80, 80, 80);
+            //doc.setLineWidth(0.4);
+            //doc.rect(boxX, boxY, boxW, boxH);
+
+            doc.setFont(undefined, 'bold');
+            doc.setFontSize(24);
+            doc.text(String(turmaData.turma || ''), boxX + boxW / 2, boxY + 10, { align: 'center' });
+
+            // ===== CABEÇALHO =====
+            doc.setFontSize(7);
+            doc.setFont(undefined, 'bold');
+            doc.text('CED 03 DE SOBRADINHO - CCMDF', 105, y, { align: 'center' });
+            y += 4;
+
+            doc.setFontSize(10);
+            doc.setFont(undefined, 'bold');
+            doc.text('LISTA DE FREQUÊNCIA', 105, y, { align: 'center' });
+            y += 5;
+
+            doc.setFontSize(9);
+            doc.text(`TURMA ${turmaData.turma}`, 105, y, { align: 'center' });
+            y += 5;
+
+            // ===== LEGENDA / TEXTO AUXILIAR =====
+            doc.setFontSize(7);
+            doc.setFont(undefined, 'bold');
+            doc.text('LEGENDA', 10, y);
+            y += 3;
+            doc.setFont(undefined, 'normal');
+            doc.text('TR1, TR2, TR3: TRILHA do 1°,2° ou 3° ANO', 10, y);
+            y += 3;
+            doc.text('ENG: Engenhando o Mundo', 10, y);
+            y += 3;
+            doc.text('VID: A Vida é uma Arte Sem Fim', 10, y);
+            y += 3;
+            doc.text('JAN: Leitura: Uma Janela para o Mundo', 10, y);
+            y += 3;
+            doc.text('SALAS: (A3), (D1) até (F1)', 10, y);
+            y += 5;
+
+            const tableData = turmaData.alunos.map((aluno, i) => [
+              i + 1,
+              aluno.nome,
+              aluno.turma || turmaData.turma,
+              aluno.trilha,
+              aluno.terca,
+              aluno.quarta
+            ]);
+
+            doc.autoTable({
+              startY: y,
+              head: [['Nº', 'Nome', 'Turma', 'Trilha', 'Terça', 'Quarta']],
+              body: tableData,
+              styles: {
+                fontSize: 7,
+                cellPadding: 1.5,
+                lineWidth: 0.1,
+                lineColor: [50, 50, 50],
+                textColor: [0, 0, 0]
+              },
+              headStyles: {
+                fillColor: [26, 115, 232],
+                textColor: 255,
+                fontSize: 7
+              },
+              columnStyles: {
+                0: { cellWidth: 8 },
+                1: { cellWidth: 55 },
+                2: { cellWidth: 12 },
+                3: { cellWidth: 20 },
+                4: { cellWidth: 44 },
+                5: { cellWidth: 44 }
+              },
+              margin: { left: 10, right: 10 }
+            });
+          });
+          
+          doc.save(`Listas_Turmas_${new Date().getTime()}.pdf`);
+          mostrarDialog('✅ PDF gerado e baixado com sucesso!', 'info');
+        } catch (error) {
+          mostrarDialog('❌ Erro ao gerar PDF: ' + error.message, 'error');
+        }
+      }, 100);
+    }
+
+    function mostrarPreviewProfessor(dados, professores) {
+      mostrarDialog('⏳ Gerando PDF...', 'info');
+      
+      setTimeout(() => {
+        try {
+          const { jsPDF } = window.jspdf;
+          const doc = new jsPDF('p', 'mm', 'a4');
+          
+          if (!dados || dados.length === 0) {
+            mostrarDialog('❌ Nenhum dado encontrado!', 'error');
+            return;
+          }
+          
+          dados.forEach((profData, index) => {
+            if (index > 0) doc.addPage();
+            
+            let y = 10;
+            const info = profData.info || {};
+            
+            // Cabeçalho - TUDO CENTRALIZADO, TAMANHO 11
+            doc.setFontSize(10);
+            doc.setFont(undefined, 'bold');
+            doc.text('CED03 SOBRADINHO CCMDF', 105, y, { align: 'center' });
+            y += 5;
+            doc.text('RELAÇÃO DE ESTUDANTES', 105, y, { align: 'center' });
+            y += 7;
+            
+            // NOME DISCIPLINA: Coluna D + Coluna I
+            doc.setFont(undefined, 'bold');
+            const nomeDisciplina = `Nome da Disciplina: ${info.codigoTrilha || '-'} ${info.nomeTrilha || '-'}`;
+            doc.text(nomeDisciplina, 105, y, { align: 'center' });
+            y += 6;
+            
+            // UNIDADE CURRICULAR: Coluna B + Coluna T
+            doc.setFontSize(9);
+            const uc = `Unidade Curricular: ${info.uc || '-'} ${info.nomeUC || '-'}`;
+            doc.text(uc, 105, y, { align: 'center' });
+            y += 5;
+            
+            // PROFESSOR: Coluna A (NEGRITO)
+            doc.setFontSize(9);
+            doc.setFont(undefined, 'bold');
+            doc.text(`Professor(a): ${info.professorNome || profData.professor}`, 105, y, { align: 'center' });
+            y += 4;
+            
+            // ÁREA: Coluna J
+            doc.setFontSize(9);
+            doc.setFont(undefined, 'normal');
+            doc.text(`Área: ${info.area || '-'}`, 105, y, { align: 'center' });
+            y += 4;
+            
+            // DATAS E HORÁRIOS: Coluna F
+            doc.setFontSize(9);
+            doc.setFont(undefined, 'bold');
+            doc.text(`Dia e Horário: ${info.horario || '-'}`, 105, y, { align: 'center' });
+            y += 4;
+            
+            // SALA: Coluna K 
+            doc.setFontSize(9);
+            doc.setFont(undefined, 'bold');
+            doc.text(`Sala: ${info.sala || '-'}`, 105, y, { align: 'center' });
+            y += 3;
+            
+            // ===== BLOCO PROF1 / PROF2 COM BORDAS AJUSTADAS =====
+            const boxX = 10;
+            const boxY = y;
+            const boxW = 190;   // de 10 até 200
+            const boxH = 14;    // altura total do bloco
+            const midX = boxX + boxW / 2;
+            const midY = boxY + boxH / 2;
+
+            // Bordas externas finas
+            doc.setDrawColor(80, 80, 80);
+            doc.setLineWidth(0.1);
+            doc.rect(boxX, boxY, boxW, boxH);
+
+            // Linha vertical interna fina
+            doc.setLineWidth(0.1);
+            doc.line(midX, boxY, midX, boxY + boxH);
+
+            // Linha horizontal interna mais espessa
+            doc.setLineWidth(0.3);
+            doc.line(boxX, midY, boxX + boxW, midY);
+
+            // === TEXTOS CENTRALIZADOS ===
+            const centroEsq = boxX + boxW / 4;
+            const centroDir = boxX + (3 * boxW / 4);
+
+            // Títulos
+            doc.setFontSize(9);
+            doc.setFont(undefined, 'bold');
+            doc.text('Informações da Trilha - Prof (1):', centroEsq, boxY + 5, { align: 'center' });
+            doc.text('Informações da Trilha - Prof (2):', centroDir, boxY + 5, { align: 'center' });
+
+            // Conteúdo
+            doc.setFont(undefined, 'normal');
+            doc.setFontSize(9);
+            doc.text(info.prof1Info || '-', centroEsq, boxY + 12, { align: 'center', maxWidth: 85 });
+            doc.text(info.prof2Info || '-', centroDir, boxY + 12, { align: 'center', maxWidth: 85 });
+
+            // Ajusta Y para continuar o restante do PDF
+            y = boxY + boxH + 4;
+
+            
+            // Tabela de alunos
+            const alunos = profData.alunos || [];
+            const tableData = alunos.map((aluno, i) => [
+              i + 1,
+              aluno.nome || '-',
+              aluno.turma || '-',
+              '', '', '', '', '', '', '', '', '', '', '' // 11 colunas vazias
+            ]);
+            
+            doc.autoTable({
+              startY: y,
+              head: [['', 'NOME', 'TURMA', '', '', '', '', '', '', '', '', '', '', '']],
+              body: tableData,
+              styles: { 
+                fontSize: 8,
+                cellPadding: 1.2,
+                lineWidth: 0.2,          // Espessura 0.2
+                lineColor: [50, 50, 50], // Cinza
+                textColor: [0, 0, 0],      // Preto
+                halign: 'center',
+                
+              },
+              headStyles: { 
+                cellPadding: 1.5,
+                fillColor: [255, 255, 255],
+                textColor: [0, 0, 0],
+                fontStyle: 'bold',
+                lineWidth: 0.2,
+                lineColor: [50, 50, 50],
+                halign: 'center',
+                
+              },
+              columnStyles: {
+                0: { cellWidth: 6, halign: 'left' },
+                1: { cellWidth: 65, halign: 'left' },
+                2: { cellWidth: 13, halign: 'center' },
+                3: { cellWidth: 10 }, 4: { cellWidth: 10 }, 5: { cellWidth: 10 },
+                6: { cellWidth: 10 }, 7: { cellWidth: 10 }, 8: { cellWidth: 10 },
+                9: { cellWidth: 10 }, 10: { cellWidth: 10 }, 11: { cellWidth: 10 },
+                12: { cellWidth: 10 }, 13: { cellWidth: 10 }
+              },
+              margin: { left: 8, right: 8, bottom: 8 },
+              tableLineColor: [50, 50, 50],
+              tableLineWidth: 0.2
+            });
+          });
+          
+          doc.save(`Listas_Professores_${new Date().getTime()}.pdf`);
+          mostrarDialog('✅ PDF gerado com sucesso!', 'info');
+        } catch (error) {
+          console.error('Erro:', error);
+          mostrarDialog('❌ Erro: ' + error.message, 'error');
+        }
+      }, 100);
+    }
+
+    function confirmarGeracaoPDFTurma(turmas) {
+      mostrarDialog('⏳ Gerando PDF...', 'info');
+      google.script.run
+        .withSuccessHandler(res => {
+          if (res.erro) {
+            mostrarDialog('❌ ' + res.erro, 'error');
+          } else {
+            window.open(res.url, '_blank');
+            mostrarDialog('✅ PDF gerado! A planilha foi aberta em uma nova aba. Use Arquivo > Imprimir ou Baixar como PDF.', 'info');
+          }
+        })
+        .withFailureHandler(err => mostrarDialog('❌ Erro: ' + err.message, 'error'))
+        .gerarPDFTurma(turmas);
+    }
+
+    function confirmarGeracaoPDFProfessor(professores) {
+      mostrarDialog('⏳ Gerando PDF...', 'info');
+      google.script.run
+        .withSuccessHandler(res => {
+          if (res.erro) {
+            mostrarDialog('❌ ' + res.erro, 'error');
+          } else {
+            window.open(res.url, '_blank');
+            mostrarDialog('✅ PDF gerado! A planilha foi aberta em uma nova aba. Use Arquivo > Imprimir ou Baixar como PDF.', 'info');
+          }
+        })
+        .withFailureHandler(err => mostrarDialog('❌ Erro: ' + err.message, 'error'))
+        .gerarPDFProfessor(professores);
+    }
+
+
+    function abrirModalImportarLote() {
+      document.getElementById('modalImportarLote').style.display = 'block';
+    }
+    function fecharModalImportarLote() {
+      document.getElementById('modalImportarLote').style.display = 'none';
+    }
+    function toggleSidebar() {
+      const sb = document.getElementById('sidebar');
+      if (window.innerWidth <= 920) { sb.classList.toggle('mobile-open'); } else { sb.classList.toggle('collapsed'); }
+    }
+
+    window.onload = function() {
+      console.log('Sistema iniciado.');
+      setupMobileDetection();
+      selecionarTrilha(null); // null = carregar tudo
+
+      // Banner do Google Apps Script aparece por 5 segundos e depois desaparece suavemente
+      setTimeout(hideGoogleBanner, 5000);
+    };
+
+
+
+
+
+
+
+    function abrirModalImportarLote() {
+      document.getElementById('modalImportarLote').style.display = 'block';
+      document.getElementById('fileImport').value = '';
+      document.getElementById('importStatus').innerHTML = '';
+    }
+
+    function fecharModalImportarLote() {
+      document.getElementById('modalImportarLote').style.display = 'none';
+    }
+
+    function processarImportacao() {
+      const file = document.getElementById('fileImport').files[0];
+      if (!file) {
+        mostrarDialog('❌ Selecione um arquivo XML.', 'error');
+        return;
+      }
+
+      const nome = (file.name || '').toLowerCase();
+      if (!nome.endsWith('.xml')) {
+        mostrarDialog('❌ O arquivo precisa ser XML.', 'error');
+        return;
+      }
+
+      const status = document.getElementById('importStatus');
+      status.innerHTML = '⏳ Lendo XML...';
+
+      const reader = new FileReader();
+
+      reader.onload = function(e) {
+        const xmlText = e.target.result;
+        status.innerHTML = '⏳ Processando XML...';
+
+        google.script.run
+          .withSuccessHandler(resultado => {
+            fecharModalImportarLote();
+            tratarResultadoImportacao(resultado);
+          })
+          .withFailureHandler(err => {
+            status.innerHTML = '❌ ' + err.message;
+            mostrarDialog('❌ Erro: ' + err.message, 'error');
+          })
+          .processarImportacaoXML(xmlText, file.name);
+      };
+
+      reader.onerror = function() {
+        status.innerHTML = '❌ Falha ao ler o arquivo.';
+        mostrarDialog('❌ Não foi possível ler o XML.', 'error');
+      };
+
+      reader.readAsText(file, 'UTF-8');
+    }
+
+    function tratarResultadoImportacao(res) {
+      if (res.erro) {
+        mostrarDialog('❌ ' + res.erro, 'error');
+        return;
+      }
+
+      let msg = `
+        ✅ Importação concluída!<br><br>
+        📦 Total lido no XML: <strong>${res.totalAlunos2026 || 0}</strong><br>
+        🌅 Matutino considerado na comparação: <strong>${res.importadosMatutino || 0}</strong><br>
+        🆕 Novos inseridos na Planilha1: <strong>${res.novos || 0}</strong><br>
+        📤 Possíveis transferidos: <strong>${res.transferidos || 0}</strong>
+      `;
+
+      if ((res.transferidos || 0) > 0) {
+        msg += `<br><br><strong>Deseja abrir a conferência dos transferidos agora?</strong>`;
+        mostrarDialog(msg, 'confirm', confirmado => {
+          if (confirmado) {
+            abrirPainelTransferidos();
+          } else {
+            recarregarDados();
+          }
+        });
+      } else {
+        mostrarDialog(msg, 'info', () => recarregarDados());
+      }
+    }
+
+    function abrirDialogExportacaoCSV() {
+      const html = `
+        <div style="text-align:left">
+          <p style="margin-bottom:10px;">Escolha o separador do CSV:</p>
+          <label style="display:block;margin:8px 0;"><input type="radio" name="sepCsv" value=";" checked> Ponto e vírgula (;)</label>
+          <label style="display:block;margin:8px 0;"><input type="radio" name="sepCsv" value=","> Vírgula (,)</label>
+        </div>
+      `;
+
+      mostrarDialog(html, 'confirm', confirmado => {
+        if (!confirmado) return;
+        const escolhido = document.querySelector('input[name="sepCsv"]:checked');
+        const separador = escolhido ? escolhido.value : ';';
+        exportarCSV(separador);
+      });
+    }
+
+    function exportarCSV(separador) {
+      mostrarDialog('⏳ Gerando CSV(s)...', 'info');
+
+      google.script.run
+        .withSuccessHandler(res => {
+          if (res.erro) {
+            mostrarDialog('❌ ' + res.erro, 'error');
+            return;
+          }
+
+          let html = `
+            ✅ Exportação concluída!<br><br>
+            📄 Arquivos gerados: <strong>${res.totalArquivos}</strong><br>
+            👥 Total de registros: <strong>${res.totalRegistros}</strong><br><br>
+            <strong>Arquivos:</strong><br>
+          `;
+
+          res.arquivos.forEach(a => {
+            html += `• <a href="${a.url}" target="_blank">${a.nome}</a> (${a.quantidade} alunos)<br>`;
+          });
+
+          html += `<br><a href="${res.pastaUrl}" target="_blank"><strong>Abrir pasta no Drive</strong></a>`;
+          mostrarDialog(html, 'info', null, 'CSV gerado');
+        })
+        .withFailureHandler(err => {
+          mostrarDialog('❌ Erro ao exportar CSV: ' + err.message, 'error');
+        })
+        .exportarAlunos2026CSV(separador);
+    }
+
+    function abrirPainelTransferidos() {
+      google.script.run
+        .withSuccessHandler(res => {
+          const lista = (res && res.transferidos) ? res.transferidos : [];
+          if (!lista.length) {
+            mostrarDialog('✅ Não há transferidos pendentes para conferência.', 'info', () => recarregarDados());
+            return;
+          }
+
+          let html = `<div style="text-align:left;max-height:50vh;overflow:auto">`;
+          html += `<p style="margin-bottom:10px;"><strong>Possíveis transferidos:</strong></p>`;
+
+          lista.forEach(a => {
+            html += `
+              <label style="display:block;margin:6px 0;">
+                <input type="checkbox" class="chk-transf" value="${a.matricula}" checked>
+                ${a.nome} — ${a.turma} — ${a.matricula}
+              </label>
+            `;
+          });
+
+          html += `</div>`;
+          html += `<div style="margin-top:12px;text-align:center;">
+                    <button class="dialog-btn dialog-btn-confirm" onclick="confirmarSelecionadosTransferidos()">Confirmar selecionados</button>
+                    <button class="dialog-btn dialog-btn-ok" onclick="confirmarTodosTransferidosFront()">Confirmar todos</button>
+                  </div>`;
+
+          mostrarDialog(html, 'info', null, 'Verificar Transferidos');
+        })
+        .withFailureHandler(err => {
+          mostrarDialog('❌ Erro: ' + err.message, 'error');
+        })
+        .getResumoPendenciasImportacao();
+    }
+
+    function confirmarSelecionadosTransferidos() {
+      const checks = Array.from(document.querySelectorAll('.chk-transf:checked'));
+      const matriculas = checks.map(x => x.value);
+
+      if (!matriculas.length) {
+        mostrarDialog('⚠️ Nenhum nome selecionado.', 'info');
+        return;
+      }
+
+      google.script.run
+        .withSuccessHandler(res => {
+          mostrarDialog(`✅ ${res.marcados} transferido(s) confirmado(s). Restantes: ${res.restantes}.`, 'info', () => recarregarDados());
+        })
+        .withFailureHandler(err => {
+          mostrarDialog('❌ Erro: ' + err.message, 'error');
+        })
+        .confirmarTransferidos(matriculas);
+    }
+
+    function confirmarTodosTransferidosFront() {
+      google.script.run
+        .withSuccessHandler(res => {
+          mostrarDialog(`✅ ${res.marcados} transferido(s) confirmado(s).`, 'info', () => recarregarDados());
+        })
+        .withFailureHandler(err => {
+          mostrarDialog('❌ Erro: ' + err.message, 'error');
+        })
+        .confirmarTodosTransferidos();
+    }
+
+
+
+    
+  
+  
+  
+  
+  </script>
 </body>
 </html>
